@@ -19,3 +19,15 @@ class SignedFileInfo(FileInfo):
 
 class SignedFileData(SignedFileInfo, FileData):
     pass
+
+
+class PublicKeyInfo(BaseModel):
+    id: str
+    public_key: str
+
+    class Config:
+        orm_mode = True
+
+
+class SignedPublicKey(PublicKeyInfo):
+    signed_key_id: str
