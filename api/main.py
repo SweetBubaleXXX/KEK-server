@@ -1,9 +1,9 @@
 import uvicorn
 from fastapi import FastAPI
 
-import crud
-from config import settings
-from database import Base, engine
+from . import crud
+from .config import settings
+from .database import Base, engine
 
 Base.metadata.create_all(engine)
 

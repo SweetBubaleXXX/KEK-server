@@ -3,8 +3,8 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-import models
-from path_formatters import split_into_components
+from . import models
+from .path_formatters import split_into_components
 
 
 def _get_child_folder(parent_folder: models.FolderRecord,
