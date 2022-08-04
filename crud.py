@@ -4,6 +4,23 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 import models
+from path_formatters import split_into_components
+
+
+def _get_child_folder(parent_folder: models.FolderRecord,
+                      child_name: str) -> models.FolderRecord | None:
+    return next(filter(
+        lambda child: child.folder_name == child_name,
+        parent_folder.child_folders
+    ), None)
+
+
+def _get_child_file(parent_folder: models.FolderRecord,
+                    filename: str) -> models.FileRecord | None:
+    return next(filter(
+        lambda child_file: child_file.filename == filename,
+        parent_folder.files
+    ), None)
 
 
 def add_key(db: Session,
@@ -39,7 +56,7 @@ def create_root_folder(db: Session,
 
 def create_child_folder(db: Session,
                         parent_folder: models.FolderRecord,
-                        folder_name: str) -> models.FolderRecord | None:
+                        folder_name: str) -> models.FolderRecord:
     child_folder = models.FolderRecord(
         owner_id=parent_folder.owner_id,
         folder_name=folder_name,
@@ -52,13 +69,38 @@ def create_child_folder(db: Session,
     return child_folder
 
 
+def create_folders_recursively(db: Session,
+                               owner_id: str,
+                               folder_path: str) -> models.FolderRecord:
+    path_components = split_into_components(folder_path)
+    parent_folder = find_folder(
+        db,
+        owner_id=owner_id,
+        full_path=models.ROOT_PATH
+    ) or create_root_folder(db, owner_id)
+    for folder_name in path_components:
+        existing_child = _get_child_folder(parent_folder, folder_name)
+        if existing_child:
+            parent_folder = existing_child
+            continue
+        new_folder = models.FolderRecord(
+            owner_id=owner_id,
+            parent_folder_id=parent_folder.folder_id,
+            folder_name=folder_name,
+            full_path=os.path.join(parent_folder.full_path, folder_name)
+        )
+        parent_folder = create_child_folder(
+            db,
+            new_folder,
+            folder_name
+        )
+    return parent_folder
+
+
 def upload_file_to_folder(db: Session,
                           folder: models.FolderRecord,
                           filename: str) -> models.FileRecord:
-    existing_file = next(filter(
-        lambda file: file.filename == filename,
-        folder.files
-    ), None)
+    existing_file = _get_child_file(folder, filename)
     file_record = existing_file or models.FileRecord(
         folder_id=folder.folder_id,
         filename=filename,
@@ -91,26 +133,3 @@ def upload_file_to_folder(db: Session,
 #     db.commit()
 #     db.refresh(file_record)
 #     return file_record
-
-
-# def get_file_link(db: Session,
-#                   key_id: str,
-#                   filename: str,
-#                   directory: str) -> str | None:
-#     file_record = db.query(models.FileRecord).filter_by(
-#         owner_id=key_id,
-#         folder_id=directory,
-#         filename=filename
-#     ).first()
-#     return file_record and file_record.link
-
-
-# def list_files_in_dir(db: Session,
-#                       key_id: str,
-#                       directory: str,
-#                       offset: int = 0,
-#                       limit: int = 200) -> list[models.FileRecord | None]:
-#     return db.query(models.FileRecord).filter(
-#         models.FileRecord.owner_id == key_id,
-#         models.FileRecord.folder_id == directory
-#     ).offset(offset).limit(limit).all()
