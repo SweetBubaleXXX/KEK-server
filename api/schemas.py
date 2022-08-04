@@ -5,8 +5,8 @@ class FileInfo(BaseModel):
     key_id: str
     path: str
 
-    class Config:
-        orm_mode = True
+    # class Config:
+    #     orm_mode = True
 
 
 class FileData(FileInfo):
@@ -25,8 +25,8 @@ class PublicKeyInfo(BaseModel):
     id: str
     public_key: str
 
-    class Config:
-        orm_mode = True
+    # class Config:
+    #     orm_mode = True
 
 
 class SignedPublicKey(PublicKeyInfo):

@@ -112,24 +112,9 @@ def upload_file_to_folder(db: Session,
     return file_record
 
 
-# def upload_file(db: Session,
-#                 file_info: schemas.FileInfo) -> models.FileRecord:
-#     folder_path, filename = os.path.split(
-#         os.path.normpath(file_info.path.strip("/")))
-#     existing_folder = find_folder(
-#         db,
-#         owner_id=file_info.key_id,
-#         full_path=folder_path or models.ROOT_PATH
-#     )
-#     if existing_folder is None:
-#         pass
-#     existing_file = next(filter(
-#         lambda file: file.filename == filename,
-#         folder.files
-#     ), None)
-#     if existing_file:
-#         return existing_file
-#     db.add(file_record)
-#     db.commit()
-#     db.refresh(file_record)
-#     return file_record
+def list_folder(folder: models.FolderRecord) -> dict[str, list[str]]:
+    return {
+        "files": list(map(lambda file: file.filename, folder.files)),
+        "folders": list(map(lambda folder: folder.folder_name,
+                            folder.child_folders))
+    }
