@@ -44,5 +44,3 @@ class FileRecord(Base):
     filename = Column(String)
     full_path = Column(String)
     last_modified = Column(DateTime, onupdate=datetime.utcnow)
-    # owner_id = Column(String, ForeignKey("public_keys.id"))
-    # link = Column(String)

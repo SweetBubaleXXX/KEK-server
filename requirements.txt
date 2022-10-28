@@ -1,3 +1,4 @@
 fastapi>=0.79.0
 uvicorn>=0.18.0
 SQLAlchemy>=1.4.0
+gnukek==1.0.0

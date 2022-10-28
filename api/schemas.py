@@ -1,33 +1,37 @@
 from pydantic import BaseModel
 
 
-class FileInfo(BaseModel):
+class BaseRequest(BaseModel):
     key_id: str
+
+
+class SignedRequest(BaseRequest):
+    signed_token: str
+
+
+class FileInfo(BaseRequest):
     path: str
 
-    # class Config:
-    #     orm_mode = True
+
+class SignedFileInfo(FileInfo, SignedRequest):
+    pass
 
 
 class FileData(FileInfo):
     file: bytes
 
 
-class SignedFileInfo(FileInfo):
-    signed_path: str
-
-
 class SignedFileData(SignedFileInfo, FileData):
     pass
 
 
-class PublicKeyInfo(BaseModel):
-    id: str
+class PublicKeyInfo(BaseRequest):
     public_key: str
 
-    # class Config:
-    #     orm_mode = True
+
+class SignedPublicKeyInfo(PublicKeyInfo, SignedRequest):
+    pass
 
 
-class SignedPublicKey(PublicKeyInfo):
-    signed_key_id: str
+class TokenResponse(BaseModel):
+    token: str
