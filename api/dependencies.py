@@ -1,3 +1,5 @@
+import base64
+from uuid import uuid4
 from typing import Type
 
 from fastapi import Depends, HTTPException, status
@@ -29,5 +31,11 @@ def get_key(request_model: BaseRequest, db: Session = Depends(get_db)):
 def create_signing_dependency(request_schema: Type[SignedRequest]):
     def signing_dependency(request_model: request_schema,
                            key: PublicKEK = Depends(get_key)):
-        pass
+        token = tokens.get(request_model.key_id)
+        decoded_token = base64.b64decode(request_model.signed_token)
+        is_verified = key.verify(decoded_token, token)
+        if not is_verified:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, detail="Invalid token"
+            )
     return signing_dependency
