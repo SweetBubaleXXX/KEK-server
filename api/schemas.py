@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel
 
 
@@ -6,7 +8,7 @@ class BaseRequest(BaseModel):
 
 
 class SignedRequest(BaseRequest):
-    signed_token: str
+    signed_token: str | None
 
 
 class FileInfo(BaseRequest):
@@ -34,4 +36,8 @@ class SignedPublicKeyInfo(PublicKeyInfo, SignedRequest):
 
 
 class TokenResponse(BaseModel):
-    token: str
+    token: UUID
+
+
+class DetailedTokenResponse(TokenResponse):
+    detail: str

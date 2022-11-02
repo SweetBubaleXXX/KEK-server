@@ -1,16 +1,16 @@
 import base64
-from uuid import uuid4
-from typing import Type
 
 from fastapi import Depends, HTTPException, status
 from KEK.hybrid import PublicKEK
 from sqlalchemy.orm import Session
 
 from .database import SessionLocal
+from .exceptions import exceptions
 from .models import KeyRecord
 from .schemas import BaseRequest, SignedRequest
+from .sessions import SessionStorage, create_session_dependency
 
-tokens = {}
+get_session = create_session_dependency()
 
 
 def get_db():
@@ -24,18 +24,17 @@ def get_db():
 def get_key(request_model: BaseRequest, db: Session = Depends(get_db)):
     key_record = db.get(KeyRecord(id=request_model.key_id))
     if key_record is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+        raise exceptions.RegistrationRequired()
     return key_record
 
 
-def create_signing_dependency(request_schema: Type[SignedRequest]):
-    def signing_dependency(request_model: request_schema,
-                           key: PublicKEK = Depends(get_key)):
-        token = tokens.get(request_model.key_id)
-        decoded_token = base64.b64decode(request_model.signed_token)
-        is_verified = key.verify(decoded_token, token)
-        if not is_verified:
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN, detail="Invalid token"
-            )
-    return signing_dependency
+def verify_token(request: SignedRequest,
+                 key: PublicKEK = Depends(get_key),
+                 session_storage: SessionStorage = Depends(get_session)):
+    if token is None or request.key_id not in session_storage:
+        raise exceptions.AuthenticationRequired()
+    token = session_storage.get(request.key_id)
+    decoded_token = base64.b64decode(request.signed_token)
+    is_verified = key.verify(decoded_token, token.bytes)
+    if not is_verified:
+        raise exceptions.AuthenticationFailed()
