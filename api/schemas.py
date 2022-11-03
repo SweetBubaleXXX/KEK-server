@@ -41,3 +41,4 @@ class TokenResponse(BaseModel):
 
 class DetailedTokenResponse(TokenResponse):
     detail: str
+    registration_required: bool = False

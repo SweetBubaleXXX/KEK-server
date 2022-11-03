@@ -21,11 +21,13 @@ def get_db():
         db_session.close()
 
 
-def get_key(request_model: BaseRequest, db: Session = Depends(get_db)):
+def get_key(request_model: BaseRequest,
+            db: Session = Depends(get_db)) -> PublicKEK:
     key_record = db.get(KeyRecord(id=request_model.key_id))
     if key_record is None:
         raise exceptions.RegistrationRequired()
-    return key_record
+    public_key = PublicKEK.load(key_record.public_key.encode("ascii"))
+    return public_key
 
 
 def verify_token(request: SignedRequest,
