@@ -1,3 +1,6 @@
+import json
+
+from fastapi import Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
@@ -6,20 +9,20 @@ from ..schemas import BaseRequest, DetailedTokenResponse
 from . import exceptions
 
 
-def registration_required_handler(request: BaseRequest,
-                                  exc: exceptions.RegistrationRequired):
+async def registration_required_handler(request: Request,
+                                        exc: exceptions.RegistrationRequired):
     session_storage = get_session()
-    token = session_storage.add(request.key_id)
+    token = session_storage.add(exc.detail)
     return JSONResponse(content=jsonable_encoder(
         DetailedTokenResponse(
-            token,
+            token=token,
             detail=exc.detail,
             registration_required=True
         )
     ), status_code=exc.status_code, headers=exc.headers)
 
 
-def authentication_required_handler(request: BaseRequest,
+def authentication_required_handler(request: Request,
                                     exc: exceptions.AuthenticationRequired):
     session_storage = get_session()
     token = session_storage.add(request.key_id)

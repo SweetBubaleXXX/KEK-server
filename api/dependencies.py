@@ -21,11 +21,11 @@ def get_db():
         db_session.close()
 
 
-def get_key(request_model: BaseRequest,
+def get_key(request: BaseRequest,
             db: Session = Depends(get_db)) -> PublicKEK:
-    key_record = db.get(KeyRecord(id=request_model.key_id))
+    key_record = db.query(KeyRecord).filter_by(id=request.key_id).first()
     if key_record is None:
-        raise exceptions.RegistrationRequired()
+        raise exceptions.RegistrationRequired(detail=request.key_id)
     public_key = PublicKEK.load(key_record.public_key.encode("ascii"))
     return public_key
 

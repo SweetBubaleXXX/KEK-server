@@ -29,10 +29,10 @@ class FolderRecord(Base):
     folder_name = Column(String, default=ROOT_PATH)
     full_path = Column(String)
 
-    child_folders = relationship("FolderRecord",
-                                 remote_side=[folder_id],
-                                 order_by="folders.folder_name",
-                                 uselist=True)
+    # child_folders = relationship("FolderRecord",
+    #                              remote_side=[folder_id],
+    #                              order_by="folders.folder_name",
+    #                              uselist=True)
     files = relationship("FileRecord", backref="folder", uselist=True)
 
 
