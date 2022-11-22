@@ -25,6 +25,9 @@ def _get_child_file(parent_folder: models.FolderRecord,
 def add_key(db: Session,
             key_id: str,
             public_key: str) -> models.KeyRecord:
+    existing_record = db.query(models.KeyRecord).filter_by(id=key_id).first()
+    if existing_record:
+        return existing_record
     key_record = models.KeyRecord(
         id=key_id,
         public_key=public_key

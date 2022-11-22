@@ -7,20 +7,24 @@ from fastapi.exceptions import HTTPException
 class RegistrationRequired(HTTPException):
     def __init__(
         self,
+        key_id: str,
         status_code: int = status.HTTP_401_UNAUTHORIZED,
         detail="Public key registration required",
         headers: Optional[dict[str, Any]] = None,
     ):
+        self.key_id = key_id
         super().__init__(status_code, detail, headers)
 
 
 class AuthenticationRequired(HTTPException):
     def __init__(
         self,
+        key_id: str,
         status_code: int = status.HTTP_401_UNAUTHORIZED,
         detail="Token authentication required",
         headers: Optional[dict[str, Any]] = None,
     ):
+        self.key_id = key_id
         super().__init__(status_code, detail, headers)
 
 

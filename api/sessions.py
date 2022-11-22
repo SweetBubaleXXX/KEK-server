@@ -12,5 +12,4 @@ def create_session_dependency():
 
     def get_session():
         return session_storage
-
     return get_session

@@ -12,7 +12,7 @@ from . import exceptions
 async def registration_required_handler(request: Request,
                                         exc: exceptions.RegistrationRequired):
     session_storage = get_session()
-    token = session_storage.add(exc.detail)
+    token = session_storage.add(exc.key_id)
     return JSONResponse(content=jsonable_encoder(
         DetailedTokenResponse(
             token=token,
@@ -25,10 +25,10 @@ async def registration_required_handler(request: Request,
 def authentication_required_handler(request: Request,
                                     exc: exceptions.AuthenticationRequired):
     session_storage = get_session()
-    token = session_storage.add(request.key_id)
+    token = session_storage.add(exc.key_id)
     return JSONResponse(content=jsonable_encoder(
         DetailedTokenResponse(
-            token,
+            token=token,
             detail=exc.detail
         )
     ), status_code=exc.status_code, headers=exc.headers)
