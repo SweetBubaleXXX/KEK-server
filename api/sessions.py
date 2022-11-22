@@ -8,8 +8,8 @@ class SessionStorage(dict[str, UUID]):
 
 
 def create_session_dependency():
-    session_storage = SessionStorage()
-
     def get_session():
         return session_storage
+
+    session_storage = SessionStorage()
     return get_session
