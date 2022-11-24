@@ -6,6 +6,7 @@ from KEK.hybrid import PublicKEK
 from KEK.exceptions import VerificationError
 from sqlalchemy.orm import Session
 
+from . import crud
 from .database import SessionLocal
 from .exceptions import exceptions
 from .models import KeyRecord
@@ -25,7 +26,7 @@ def get_db():
 
 def get_key(request: BaseRequest,
             db: Session = Depends(get_db)) -> PublicKEK:
-    key_record = db.query(KeyRecord).filter_by(id=request.key_id).first()
+    key_record = crud.get_key(request.key_id)
     if key_record is None:
         raise exceptions.RegistrationRequired(request.key_id)
     public_key = PublicKEK.load(key_record.public_key.encode("ascii"))

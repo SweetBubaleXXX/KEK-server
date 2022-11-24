@@ -37,7 +37,3 @@ def register_key(request: SignedPublicKeyInfo, db: Session = Depends(get_db)):
                             detail="Could not load public key")
     crud.add_key(db, request.key_id, request.public_key)
     verify_token(request, key, get_session())
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, host=settings.host, port=settings.port)

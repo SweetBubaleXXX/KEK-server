@@ -22,10 +22,15 @@ def _get_child_file(parent_folder: models.FolderRecord,
     ), None)
 
 
+def get_key(db: Session,
+            key_id: str) -> models.KeyRecord | None:
+    return db.query(models.KeyRecord).filter_by(id=key_id).first()
+
+
 def add_key(db: Session,
             key_id: str,
             public_key: str) -> models.KeyRecord:
-    existing_record = db.query(models.KeyRecord).filter_by(id=key_id).first()
+    existing_record = get_key(db, key_id)
     if existing_record:
         return existing_record
     key_record = models.KeyRecord(
