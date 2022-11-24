@@ -26,7 +26,7 @@ def get_db():
 
 def get_key(request: BaseRequest,
             db: Session = Depends(get_db)) -> PublicKEK:
-    key_record = crud.get_key(request.key_id)
+    key_record = crud.get_key(db, request.key_id)
     if key_record is None:
         raise exceptions.RegistrationRequired(request.key_id)
     public_key = PublicKEK.load(key_record.public_key.encode("ascii"))

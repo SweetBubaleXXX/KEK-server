@@ -1,4 +1,3 @@
-import uvicorn
 from fastapi import Body, Depends, FastAPI, status
 from fastapi.exceptions import HTTPException
 from KEK.exceptions import KeyLoadingError
@@ -6,7 +5,6 @@ from KEK.hybrid import PublicKEK
 from sqlalchemy.orm import Session
 
 from . import crud
-from .config import settings
 from .database import Base, engine
 from .dependencies import get_db, get_key, get_session, verify_token
 from .exceptions import exceptions, handlers
