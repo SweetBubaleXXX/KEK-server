@@ -1,7 +1,9 @@
 import base64
+import binascii
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from KEK.hybrid import PublicKEK
+from KEK.exceptions import VerificationError
 from sqlalchemy.orm import Session
 
 from .database import SessionLocal
@@ -36,8 +38,9 @@ def verify_token(request: SignedRequest,
     if request.signed_token is None or request.key_id not in session_storage:
         raise exceptions.AuthenticationRequired(request.key_id)
     token = session_storage.get(request.key_id)
-    decoded_token = base64.b64decode(request.signed_token)
-    is_verified = key.verify(decoded_token, str(token).encode("ascii"))
-    if not is_verified:
+    try:
+        decoded_token = base64.b64decode(request.signed_token)
+        assert key.verify(decoded_token, str(token).encode("ascii"))
+    except (binascii.Error, VerificationError, AssertionError):
         raise exceptions.AuthenticationFailed()
     session_storage.pop(request.key_id)
