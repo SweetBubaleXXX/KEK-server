@@ -29,10 +29,9 @@ class FolderRecord(Base):
     folder_name = Column(String, default=ROOT_PATH)
     full_path = Column(String)
 
-    # child_folders = relationship("FolderRecord",
-    #                              remote_side=[folder_id],
-    #                              order_by="folders.folder_name",
-    #                              uselist=True)
+    child_folders = relationship("FolderRecord",
+                                 remote_side=[folder_id],
+                                 uselist=True)
     files = relationship("FileRecord", backref="folder", uselist=True)
 
 
@@ -41,7 +40,7 @@ class FileRecord(Base):
 
     file_id = Column(String, primary_key=True, default=uuid4)
     folder_id = Column(String, ForeignKey("folders.folder_id"))
-    storage_id = Column(String, ForeignKey("storages.storage_id"))
+    storage_id = Column(String, ForeignKey("storages.id"))
     filename = Column(String)
     full_path = Column(String)
     last_modified = Column(DateTime, onupdate=datetime.utcnow)
