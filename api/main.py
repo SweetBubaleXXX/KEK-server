@@ -33,5 +33,6 @@ def register_key(request: SignedPublicKeyInfo, db: Session = Depends(get_db)):
     except (KeyLoadingError, AssertionError):
         raise HTTPException(status.HTTP_400_BAD_REQUEST,
                             detail="Could not load public key")
-    crud.add_key(db, request.key_id, request.public_key)
     verify_token(request, key, get_session())
+    if not crud.get_key(db, request.key_id):
+        crud.add_key(db, request.key_id, request.public_key)

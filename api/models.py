@@ -41,6 +41,15 @@ class FileRecord(Base):
 
     file_id = Column(String, primary_key=True, default=uuid4)
     folder_id = Column(String, ForeignKey("folders.folder_id"))
+    storage_id = Column(String, ForeignKey("storages.storage_id"))
     filename = Column(String)
     full_path = Column(String)
     last_modified = Column(DateTime, onupdate=datetime.utcnow)
+
+
+class StorageRecord(Base):
+    __tablename__ = "storages"
+
+    id = Column(String, primary_key=True)
+    url = Column(String)
+    token = Column(String)

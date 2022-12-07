@@ -30,9 +30,6 @@ def get_key(db: Session,
 def add_key(db: Session,
             key_id: str,
             public_key: str) -> models.KeyRecord:
-    existing_record = get_key(db, key_id)
-    if existing_record:
-        return existing_record
     key_record = models.KeyRecord(
         id=key_id,
         public_key=public_key
