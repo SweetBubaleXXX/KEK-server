@@ -5,7 +5,7 @@ from KEK.hybrid import PublicKEK
 from sqlalchemy.orm import Session
 
 from . import crud
-from .database import Base, engine
+from .db import Base, engine
 from .dependencies import get_db, get_key, get_session, verify_token
 from .exceptions import exceptions, handlers
 from .schemas import SignedPublicKeyInfo, SignedRequest

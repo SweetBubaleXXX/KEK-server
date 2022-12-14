@@ -7,7 +7,7 @@ from KEK.exceptions import VerificationError
 from sqlalchemy.orm import Session
 
 from . import crud
-from .database import SessionLocal
+from .db import SessionLocal
 from .exceptions import exceptions
 from .schemas import BaseRequest, SignedRequest
 from .sessions import SessionStorage, create_session_dependency

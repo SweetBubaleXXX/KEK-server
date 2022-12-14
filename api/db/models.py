@@ -4,7 +4,7 @@ from uuid import uuid4
 from sqlalchemy import Column, DateTime, ForeignKey, String
 from sqlalchemy.orm import relationship
 
-from .database import Base
+from .engine import Base
 
 ROOT_PATH = "/"
 

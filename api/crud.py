@@ -2,7 +2,7 @@ import os
 
 from sqlalchemy.orm import Session
 
-from . import models
+from .db import models
 from .path_formatters import split_into_components
 
 
