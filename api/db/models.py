@@ -1,10 +1,11 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, ForeignKey, String
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from .engine import Base
+from ..config import settings
 
 ROOT_PATH = "/"
 
@@ -14,6 +15,7 @@ class KeyRecord(Base):
 
     id = Column(String, primary_key=True)
     public_key = Column(String)
+    storage_size_limit = Column(Integer, default=settings.user_storage_size_limit)
 
     folders = relationship("FolderRecord", backref="owner")
 
@@ -44,6 +46,7 @@ class FileRecord(Base):
     filename = Column(String)
     full_path = Column(String)
     last_modified = Column(DateTime, onupdate=datetime.utcnow)
+    size = Column(Integer)
 
 
 class StorageRecord(Base):
@@ -52,3 +55,5 @@ class StorageRecord(Base):
     id = Column(String, primary_key=True)
     url = Column(String)
     token = Column(String)
+    used_space = Column(Integer, default=0)
+    capacity = Column(Integer)

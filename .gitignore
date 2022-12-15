@@ -133,3 +133,4 @@ dmypy.json
 # Environment files
 production.env
 development.env
+*.config
