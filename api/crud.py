@@ -22,14 +22,11 @@ def _get_child_file(parent_folder: models.FolderRecord,
     ), None)
 
 
-def get_key(db: Session,
-            key_id: str) -> models.KeyRecord | None:
+def get_key(db: Session, key_id: str) -> models.KeyRecord | None:
     return db.query(models.KeyRecord).filter_by(id=key_id).first()
 
 
-def add_key(db: Session,
-            key_id: str,
-            public_key: str) -> models.KeyRecord:
+def add_key(db: Session, key_id: str, public_key: str) -> models.KeyRecord:
     key_record = models.KeyRecord(
         id=key_id,
         public_key=public_key
@@ -40,13 +37,11 @@ def add_key(db: Session,
     return key_record
 
 
-def find_folder(db: Session,
-                **filters) -> models.FolderRecord | None:
+def find_folder(db: Session, **filters) -> models.FolderRecord | None:
     return db.query(models.FolderRecord).filter_by(**filters).first()
 
 
-def create_root_folder(db: Session,
-                       owner_id: str) -> models.FolderRecord:
+def create_root_folder(db: Session, owner_id: str) -> models.FolderRecord:
     root_folder = models.FolderRecord(
         owner_id=owner_id,
         folder_name=models.ROOT_PATH,
@@ -93,11 +88,7 @@ def create_folders_recursively(db: Session,
             folder_name=folder_name,
             full_path=os.path.join(parent_folder.full_path, folder_name)
         )
-        parent_folder = create_child_folder(
-            db,
-            new_folder,
-            folder_name
-        )
+        parent_folder = create_child_folder(db, new_folder, folder_name)
     return parent_folder
 
 
@@ -119,6 +110,5 @@ def upload_file_to_folder(db: Session,
 def list_folder(folder: models.FolderRecord) -> dict[str, list[str]]:
     return {
         "files": list(map(lambda file: file.filename, folder.files)),
-        "folders": list(map(lambda folder: folder.folder_name,
-                            folder.child_folders))
+        "folders": list(map(lambda folder: folder.folder_name, folder.child_folders))
     }

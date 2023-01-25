@@ -7,8 +7,7 @@ from ..schemas import DetailedTokenResponse
 from . import exceptions
 
 
-def registration_required_handler(request: Request,
-                                  exc: exceptions.RegistrationRequired):
+def registration_required_handler(request: Request, exc: exceptions.RegistrationRequired):
     session_storage = get_session()
     token = session_storage.add(exc.key_id)
     return JSONResponse(content=jsonable_encoder(
@@ -20,8 +19,7 @@ def registration_required_handler(request: Request,
     ), status_code=exc.status_code, headers=exc.headers)
 
 
-def authentication_required_handler(request: Request,
-                                    exc: exceptions.AuthenticationRequired):
+def authentication_required_handler(request: Request, exc: exceptions.AuthenticationRequired):
     session_storage = get_session()
     token = session_storage.add(exc.key_id)
     return JSONResponse(content=jsonable_encoder(

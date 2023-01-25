@@ -2,8 +2,8 @@ import base64
 import binascii
 
 from fastapi import Depends
-from KEK.hybrid import PublicKEK
 from KEK.exceptions import VerificationError
+from KEK.hybrid import PublicKEK
 from sqlalchemy.orm import Session
 
 from . import crud
@@ -23,8 +23,7 @@ def get_db():
         db_session.close()
 
 
-def get_key(request: BaseRequest,
-            db: Session = Depends(get_db)) -> PublicKEK:
+def get_key(request: BaseRequest, db: Session = Depends(get_db)) -> PublicKEK:
     key_record = crud.get_key(db, request.key_id)
     if key_record is None:
         raise exceptions.RegistrationRequired(request.key_id)
