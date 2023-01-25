@@ -1,11 +1,11 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
-from .engine import Base
 from ..config import settings
+from .engine import Base
 
 ROOT_PATH = "/"
 
@@ -16,6 +16,7 @@ class KeyRecord(Base):
     id = Column(String, primary_key=True)
     public_key = Column(String)
     storage_size_limit = Column(Integer, default=settings.user_storage_size_limit)
+    is_activated = Column(Boolean, default=settings.user_is_activated_default)
 
     folders = relationship("FolderRecord", backref="owner")
 
@@ -57,3 +58,4 @@ class StorageRecord(Base):
     token = Column(String)
     used_space = Column(Integer, default=0)
     capacity = Column(Integer)
+    priority = Column(Integer, default=1)
