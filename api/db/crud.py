@@ -2,8 +2,9 @@ import os
 
 from sqlalchemy.orm import Session
 
-from .db import models
-from .path_formatters import split_into_components
+from ..utils.path_formatters import split_into_components
+from . import models
+from .engine import Base
 
 
 def _get_child_folder(parent_folder: models.FolderRecord,
@@ -22,19 +23,29 @@ def _get_child_file(parent_folder: models.FolderRecord,
     ), None)
 
 
+def _update_record(db: Session, record: Base) -> Base:
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
 def get_key(db: Session, key_id: str) -> models.KeyRecord | None:
     return db.query(models.KeyRecord).filter_by(id=key_id).first()
 
 
-def add_key(db: Session, key_id: str, public_key: str) -> models.KeyRecord:
+def add_key(db: Session,
+            key_id: str,
+            public_key: str,
+            storage_size_limit: int | None = None,
+            is_activated: bool | None = None) -> models.KeyRecord:
     key_record = models.KeyRecord(
         id=key_id,
-        public_key=public_key
+        public_key=public_key,
+        storage_size_limit=storage_size_limit,
+        is_activated=is_activated
     )
-    db.add(key_record)
-    db.commit()
-    db.refresh(key_record)
-    return key_record
+    return _update_record(db, key_record)
 
 
 def find_folder(db: Session, **filters) -> models.FolderRecord | None:
@@ -47,10 +58,7 @@ def create_root_folder(db: Session, owner_id: str) -> models.FolderRecord:
         folder_name=models.ROOT_PATH,
         full_path=models.ROOT_PATH
     )
-    db.add(root_folder)
-    db.commit()
-    db.refresh(root_folder)
-    return root_folder
+    return _update_record(db, root_folder)
 
 
 def create_child_folder(db: Session,
@@ -92,19 +100,20 @@ def create_folders_recursively(db: Session,
     return parent_folder
 
 
-def upload_file_to_folder(db: Session,
-                          folder: models.FolderRecord,
-                          filename: str) -> models.FileRecord:
+def update_file_record(db: Session,
+                       folder: models.FolderRecord,
+                       storage_id: str,
+                       filename: str,
+                       size: int) -> models.FileRecord:
     existing_file = _get_child_file(folder, filename)
     file_record = existing_file or models.FileRecord(
         folder_id=folder.folder_id,
         filename=filename,
         full_path=os.path.join(folder.full_path, filename)
     )
-    db.add(file_record)
-    db.commit()
-    db.refresh(file_record)
-    return file_record
+    file_record.storage_id = storage_id
+    file_record.size = size
+    return _update_record(db, file_record)
 
 
 def list_folder(folder: models.FolderRecord) -> dict[str, list[str]]:

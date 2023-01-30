@@ -6,10 +6,9 @@ from KEK.exceptions import VerificationError
 from KEK.hybrid import PublicKEK
 from sqlalchemy.orm import Session
 
-from . import crud
-from .db import SessionLocal
+from .db import SessionLocal, crud
 from .exceptions import exceptions
-from .sessions import SessionStorage, create_session_dependency
+from .utils.sessions import SessionStorage, create_session_dependency
 
 get_session = create_session_dependency()
 

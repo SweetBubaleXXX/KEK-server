@@ -4,7 +4,7 @@ from KEK.exceptions import KeyLoadingError
 from KEK.hybrid import PublicKEK
 from sqlalchemy.orm import Session
 
-from .. import crud
+from ..db import crud
 from ..dependencies import get_db, get_session, verify_token
 from ..schemas import PublicKeyInfo
 

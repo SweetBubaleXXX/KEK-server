@@ -12,11 +12,10 @@ ROOT_PATH = "/"
 
 class KeyRecord(Base):
     __tablename__ = "public_keys"
-
     id = Column(String, primary_key=True)
     public_key = Column(String)
-    storage_size_limit = Column(Integer, default=settings.user_storage_size_limit)
-    is_activated = Column(Integer, default=settings.user_is_activated_default)
+    storage_size_limit = Column(Integer, default=settings.user_storage_size_limit, nullable=False)
+    is_activated = Column(Integer, default=settings.user_is_activated_default, nullable=False)
 
     folders = relationship("FolderRecord", backref="owner")
 
