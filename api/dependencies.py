@@ -40,6 +40,6 @@ def verify_token(signed_token: str | None = Header(default=None),
     try:
         decoded_token = base64.b64decode(signed_token)
         assert key.verify(decoded_token, str(token).encode("ascii"))
-    except (binascii.Error, VerificationError, AssertionError):
-        raise exceptions.AuthenticationFailed()
+    except (binascii.Error, VerificationError, AssertionError) as exc:
+        raise exceptions.AuthenticationFailed() from exc
     session_storage.pop(key_id)
