@@ -1,5 +1,5 @@
-fastapi>=0.79.0
-uvicorn>=0.18.0
-SQLAlchemy>=1.4.0
-python-dotenv>=0.21.0
+fastapi==0.89.1
 gnukek==1.0.0
+python-dotenv==0.21.1
+SQLAlchemy==1.4.46
+uvicorn==0.20.0
