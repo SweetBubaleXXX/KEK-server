@@ -8,7 +8,7 @@ from ..db import crud
 from ..dependencies import get_db, get_session, verify_token
 from ..schemas import PublicKeyInfo
 
-router = APIRouter()
+router = APIRouter(tags=["registration"])
 
 
 @router.post("/register")
