@@ -6,7 +6,7 @@ from KEK.exceptions import VerificationError
 from KEK.hybrid import PublicKEK
 from sqlalchemy.orm import Session
 
-from .db import SessionLocal, crud
+from .db import engine, crud
 from .exceptions import exceptions
 from .utils.sessions import SessionStorage, create_session_dependency
 
@@ -14,7 +14,7 @@ get_session = create_session_dependency()
 
 
 def get_db():
-    db_session = SessionLocal()
+    db_session = engine.SessionLocal()
     try:
         yield db_session
     finally:

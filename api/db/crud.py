@@ -2,6 +2,7 @@ import os
 
 from sqlalchemy.orm import Session
 
+from .. import config
 from ..utils.path_formatters import split_into_components
 from . import models
 from .engine import Base
@@ -42,8 +43,8 @@ def add_key(db: Session,
     key_record = models.KeyRecord(
         id=key_id,
         public_key=public_key,
-        storage_size_limit=storage_size_limit,
-        is_activated=is_activated
+        storage_size_limit=storage_size_limit or config.settings.user_storage_size_limit,
+        is_activated=is_activated or config.settings.user_is_activated_default
     )
     return _update_record(db, key_record)
 

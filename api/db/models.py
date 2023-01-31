@@ -4,7 +4,6 @@ from uuid import uuid4
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
-from ..config import settings
 from .engine import Base
 
 ROOT_PATH = "/"
@@ -14,8 +13,8 @@ class KeyRecord(Base):
     __tablename__ = "public_keys"
     id = Column(String, primary_key=True)
     public_key = Column(String)
-    storage_size_limit = Column(Integer, default=settings.user_storage_size_limit, nullable=False)
-    is_activated = Column(Integer, default=settings.user_is_activated_default, nullable=False)
+    storage_size_limit = Column(Integer, default=0, nullable=False)
+    is_activated = Column(Integer, default=0, nullable=False)
 
     folders = relationship("FolderRecord", backref="owner")
 

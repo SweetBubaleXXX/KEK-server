@@ -1,11 +1,11 @@
 from fastapi import Depends, FastAPI
 
-from .db import Base, engine
+from .db import engine as db
 from .dependencies import verify_token
 from .exceptions import exceptions, handlers
 from .routers import registration
 
-Base.metadata.create_all(engine)
+db.Base.metadata.create_all(db.engine)
 
 app = FastAPI()
 
