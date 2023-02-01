@@ -1,13 +1,13 @@
 import unittest
 from base64 import b64encode
 
+from fastapi import status
 from fastapi.testclient import TestClient
 from httpx import Response
-from fastapi import status
 from KEK.hybrid import PrivateKEK
 
-from api.db import models
 from api.app import app
+from api.db import models
 from tests.setup_test_env import (setup_config, setup_database,
                                   teardown_database)
 

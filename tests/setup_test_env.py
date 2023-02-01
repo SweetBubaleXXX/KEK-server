@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from api import config
 from api.app import app
 from api.db import engine as db
-from api.dependencies import get_db
 from api.db.dependency import create_get_db_dependency
+from api.dependencies import get_db
 
 test_settings = config.Settings(_env_file=".config.test")
 
