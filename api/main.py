@@ -1,9 +1,9 @@
 import uvicorn
 
 from .app import app
-from .db import engine as db
+from .db.engine import Base, engine
 
-db.Base.metadata.create_all(db.engine)
+Base.metadata.create_all(engine)
 
 
 def main():

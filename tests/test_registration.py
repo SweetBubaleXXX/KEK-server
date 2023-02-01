@@ -67,7 +67,7 @@ class TestRegistration(unittest.TestCase):
                                     headers={"Signed-Token": signed_token})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def _public_key_info(self, key: PrivateKEK) -> dict:
+    def _public_key_info(self, key: PrivateKEK) -> dict[str, str]:
         return {
             "key_id": key.key_id.hex(),
             "public_key": key.public_key.serialize().decode("utf-8")

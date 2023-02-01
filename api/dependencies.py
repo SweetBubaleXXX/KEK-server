@@ -10,7 +10,7 @@ from .db import crud
 from .db.engine import SessionLocal
 from .exceptions import exceptions
 from .utils.sessions import SessionStorage, create_session_dependency
-from .utils.db import create_get_db_dependency
+from .db.dependency import create_get_db_dependency
 
 get_session = create_session_dependency()
 get_db = create_get_db_dependency(SessionLocal)
