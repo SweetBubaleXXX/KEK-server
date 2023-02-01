@@ -1,6 +1,4 @@
 autopep8
-httpx
 mypy
 pycodestyle
 pylint
-pytest
