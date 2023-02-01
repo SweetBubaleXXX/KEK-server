@@ -53,13 +53,22 @@ def find_folder(db: Session, **filters) -> models.FolderRecord | None:
     return db.query(models.FolderRecord).filter_by(**filters).first()
 
 
-def create_root_folder(db: Session, owner_id: str) -> models.FolderRecord:
-    root_folder = models.FolderRecord(
-        owner_id=owner_id,
+def create_or_return_root_folder(db: Session,
+                                 key_record: models.KeyRecord) -> models.FolderRecord:
+    existing_folder_record = db.query(models.FolderRecord).filter_by(
+        owner=key_record,
+        full_path=models.ROOT_PATH
+    ).first()
+    if existing_folder_record:
+        return existing_folder_record
+    folder_record = models.FolderRecord(
+        owner_id=key_record.id,
         folder_name=models.ROOT_PATH,
         full_path=models.ROOT_PATH
     )
-    return _update_record(db, root_folder)
+    key_record.folders.append(folder_record)
+    _update_record(db, key_record)
+    return folder_record
 
 
 def create_child_folder(db: Session,
@@ -81,11 +90,7 @@ def create_folders_recursively(db: Session,
                                owner_id: str,
                                folder_path: str) -> models.FolderRecord:
     path_components = split_into_components(folder_path)
-    parent_folder = find_folder(
-        db,
-        owner_id=owner_id,
-        full_path=models.ROOT_PATH
-    ) or create_root_folder(db, owner_id)
+    parent_folder = create_or_return_root_folder(db, owner_id)
     for folder_name in path_components:
         existing_child = _get_child_folder(parent_folder, folder_name)
         if existing_child:

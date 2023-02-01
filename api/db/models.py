@@ -16,13 +16,13 @@ class KeyRecord(Base):
     storage_size_limit = Column(Integer, default=0, nullable=False)
     is_activated = Column(Integer, default=0, nullable=False)
 
-    folders = relationship("FolderRecord", backref="owner")
+    folders = relationship("FolderRecord", backref="owner", uselist=True)
 
 
 class FolderRecord(Base):
     __tablename__ = "folders"
 
-    folder_id = Column(String, primary_key=True, default=uuid4)
+    folder_id = Column(String, primary_key=True, default=lambda: str(uuid4()))
     owner_id = Column(String, ForeignKey("public_keys.id"))
     parent_folder_id = Column(String,
                               ForeignKey("folders.folder_id"),
@@ -39,7 +39,7 @@ class FolderRecord(Base):
 class FileRecord(Base):
     __tablename__ = "files"
 
-    file_id = Column(String, primary_key=True, default=uuid4)
+    file_id = Column(String, primary_key=True, default=lambda: str(uuid4()))
     folder_id = Column(String, ForeignKey("folders.folder_id"))
     storage_id = Column(String, ForeignKey("storages.id"))
     filename = Column(String)

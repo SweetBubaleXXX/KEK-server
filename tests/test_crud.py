@@ -34,3 +34,26 @@ class TestCrud(unittest.TestCase):
         crud.add_key(self.session, key_id, "public_key")
         key_record = self.session.query(models.KeyRecord).filter_by(id=key_id).first()
         self.assertEqual(key_record.storage_size_limit, self.settings.user_storage_size_limit)
+
+    def test_create_root_folder(self):
+        key_record = models.KeyRecord(id="key_id", public_key="public_key")
+        self.session.add(key_record)
+        self.session.commit()
+        crud.create_or_return_root_folder(self.session, key_record)
+        folder_record = self.session.query(models.FolderRecord).filter_by(
+            owner_id=key_record.id,
+            full_path=models.ROOT_PATH
+        ).first()
+        self.assertEqual(folder_record.owner, key_record)
+
+    def test_create_root_folder_twice(self):
+        key_record = models.KeyRecord(id="key_id", public_key="public_key")
+        self.session.add(key_record)
+        self.session.commit()
+        crud.create_or_return_root_folder(self.session, key_record)
+        crud.create_or_return_root_folder(self.session, key_record)
+        root_folder_count = self.session.query(models.FolderRecord).filter_by(
+            owner_id=key_record.id,
+            full_path=models.ROOT_PATH
+        ).count()
+        self.assertEqual(root_folder_count, 1)

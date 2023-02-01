@@ -70,6 +70,15 @@ class TestRegistration(unittest.TestCase):
         key_record = self.session.query(models.KeyRecord).filter_by(id=key.key_id.hex()).first()
         self.assertEqual(key_record.public_key, key.public_key.serialize().decode("utf-8"))
 
+    def test_root_folder_creation(self):
+        key = PrivateKEK.generate()
+        self._register_key(key)
+        root_folder = self.session.query(models.FolderRecord).filter_by(
+            owner_id=key.key_id.hex(),
+            full_path=models.ROOT_PATH
+        ).first()
+        self.assertEqual(root_folder.owner.id, key.key_id.hex())
+
     def _public_key_info(self, key: PrivateKEK) -> dict[str, str]:
         return {
             "key_id": key.key_id.hex(),
