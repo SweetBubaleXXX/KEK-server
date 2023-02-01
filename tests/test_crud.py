@@ -1,6 +1,6 @@
 import unittest
 
-from api.db import crud, engine, models
+from api.db import crud, models
 from tests.setup_test_env import (setup_config, setup_database,
                                   teardown_database)
 
@@ -8,7 +8,10 @@ from tests.setup_test_env import (setup_config, setup_database,
 class TestCrud(unittest.TestCase):
     def setUp(self):
         self.settings = setup_config()
-        self.engine, self.session = setup_database(engine.Base)
+        self.session = setup_database()
+
+    def tearDown(self):
+        teardown_database(self.session)
 
     def test_get_key(self):
         key_id = "key_id"
@@ -31,6 +34,3 @@ class TestCrud(unittest.TestCase):
         crud.add_key(self.session, key_id, "public_key")
         key_record = self.session.query(models.KeyRecord).filter_by(id=key_id).first()
         self.assertEqual(key_record.storage_size_limit, self.settings.user_storage_size_limit)
-
-    def tearDown(self):
-        teardown_database(engine.Base, self.engine)

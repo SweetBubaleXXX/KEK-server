@@ -6,19 +6,14 @@ from KEK.exceptions import VerificationError
 from KEK.hybrid import PublicKEK
 from sqlalchemy.orm import Session
 
-from .db import engine, crud
+from .db import crud
+from .db.engine import SessionLocal
 from .exceptions import exceptions
 from .utils.sessions import SessionStorage, create_session_dependency
+from .utils.db import create_get_db_dependency
 
 get_session = create_session_dependency()
-
-
-def get_db():
-    db_session = engine.SessionLocal()
-    try:
-        yield db_session
-    finally:
-        db_session.close()
+get_db = create_get_db_dependency(SessionLocal)
 
 
 def get_key(key_id: str = Header(), db: Session = Depends(get_db)) -> PublicKEK:

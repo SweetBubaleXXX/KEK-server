@@ -1,11 +1,12 @@
 import unittest
+from base64 import b64encode
 
 from fastapi.testclient import TestClient
 from fastapi import status
 from KEK.hybrid import PrivateKEK
 
-from api.db import engine, models
-from api.main import app
+from api.db import models
+from api.app import app
 from tests.setup_test_env import (setup_config, setup_database,
                                   teardown_database)
 
@@ -13,14 +14,11 @@ from tests.setup_test_env import (setup_config, setup_database,
 class TestRegistration(unittest.TestCase):
     def setUp(self):
         self.settings = setup_config()
-        self.engine, self.session = setup_database(engine.Base)
+        self.session = setup_database()
         self.client = TestClient(app)
 
-    def _public_key_info(self, key: PrivateKEK) -> dict:
-        return {
-            "key_id": key.key_id.hex(),
-            "public_key": key.public_key.serialize().decode("utf-8")
-        }
+    def tearDown(self):
+        teardown_database(self.session)
 
     def test_empty_request(self):
         response = self.client.post("/register", json={})
@@ -60,5 +58,17 @@ class TestRegistration(unittest.TestCase):
                                     headers={"Signed-Token": "invalid_token"})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def tearDown(self):
-        teardown_database(engine.Base, self.engine)
+    def test_token(self):
+        key = PrivateKEK.generate()
+        response = self.client.post("/register", json=self._public_key_info(key))
+        token = response.json().get("token")
+        signed_token = b64encode(key.sign(token.encode("utf-8")))
+        response = self.client.post("/register", json=self._public_key_info(key),
+                                    headers={"Signed-Token": signed_token})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def _public_key_info(self, key: PrivateKEK) -> dict:
+        return {
+            "key_id": key.key_id.hex(),
+            "public_key": key.public_key.serialize().decode("utf-8")
+        }
