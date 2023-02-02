@@ -62,7 +62,7 @@ def create_or_return_root_folder(db: Session,
     if existing_folder_record:
         return existing_folder_record
     folder_record = models.FolderRecord(
-        owner_id=key_record.id,
+        owner=key_record,
         folder_name=models.ROOT_PATH,
         full_path=models.ROOT_PATH
     )
@@ -98,7 +98,7 @@ def create_folders_recursively(db: Session,
             continue
         new_folder = models.FolderRecord(
             owner_id=owner_id,
-            parent_folder_id=parent_folder.folder_id,
+            parent_folder_id=parent_folder.id,
             folder_name=folder_name,
             full_path=os.path.join(parent_folder.full_path, folder_name)
         )
@@ -113,7 +113,7 @@ def update_file_record(db: Session,
                        size: int) -> models.FileRecord:
     existing_file = _get_child_file(folder, filename)
     file_record = existing_file or models.FileRecord(
-        folder_id=folder.folder_id,
+        folder_id=folder.id,
         filename=filename,
         full_path=os.path.join(folder.full_path, filename)
     )

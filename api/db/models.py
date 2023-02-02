@@ -16,36 +16,42 @@ class KeyRecord(Base):
     storage_size_limit = Column(Integer, default=0, nullable=False)
     is_activated = Column(Integer, default=0, nullable=False)
 
-    folders = relationship("FolderRecord", backref="owner", uselist=True)
+    folders = relationship("FolderRecord", back_populates="owner", cascade="all, delete")
 
 
 class FolderRecord(Base):
     __tablename__ = "folders"
 
-    folder_id = Column(String, primary_key=True, default=lambda: str(uuid4()))
+    id = Column(String, primary_key=True, default=lambda: str(uuid4()))
     owner_id = Column(String, ForeignKey("public_keys.id"))
-    parent_folder_id = Column(String,
-                              ForeignKey("folders.folder_id"),
-                              nullable=True)
+    parent_id = Column(String, ForeignKey("folders.id"), nullable=True)
     folder_name = Column(String, default=ROOT_PATH)
     full_path = Column(String)
 
+    owner = relationship("KeyRecord", back_populates="folders")
+    parent_folder = relationship("FolderRecord",
+                                 back_populates="child_folders",
+                                 remote_side=[id],
+                                 uselist=False)
     child_folders = relationship("FolderRecord",
-                                 remote_side=[folder_id],
-                                 uselist=True)
-    files = relationship("FileRecord", backref="folder", uselist=True)
+                                 back_populates="parent_folder",
+                                 cascade="all, delete")
+    files = relationship("FileRecord", back_populates="folder", cascade="all, delete")
 
 
 class FileRecord(Base):
     __tablename__ = "files"
 
-    file_id = Column(String, primary_key=True, default=lambda: str(uuid4()))
-    folder_id = Column(String, ForeignKey("folders.folder_id"))
+    id = Column(String, primary_key=True, default=lambda: str(uuid4()))
+    folder_id = Column(String, ForeignKey("folders.id"))
     storage_id = Column(String, ForeignKey("storages.id"))
     filename = Column(String)
     full_path = Column(String)
     last_modified = Column(DateTime, onupdate=datetime.utcnow)
     size = Column(Integer)
+
+    folder = relationship("FolderRecord", back_populates="files", uselist=False)
+    storage = relationship("StorageRecord", back_populates="files", uselist=False)
 
 
 class StorageRecord(Base):
@@ -57,3 +63,5 @@ class StorageRecord(Base):
     used_space = Column(Integer, default=0)
     capacity = Column(Integer)
     priority = Column(Integer, default=1)
+
+    files = relationship("FileRecord", back_populates="storage")
