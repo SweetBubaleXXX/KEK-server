@@ -20,7 +20,7 @@ class TestRegistration(unittest.TestCase):
         self.key = PrivateKEK.generate()
         self.key_record = self._register_key(self.key)
 
-    # def test_
+    def test_create_folder(): ...
 
     def tearDown(self):
         teardown_database(self.session)

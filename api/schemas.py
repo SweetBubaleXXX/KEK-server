@@ -8,6 +8,11 @@ class PublicKeyInfo(BaseModel):
     public_key: str
 
 
+class CreateFolder(BaseModel):
+    path: str
+    recursive: bool = False
+
+
 class TokenResponse(BaseModel):
     token: UUID
 
