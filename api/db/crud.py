@@ -11,7 +11,7 @@ from .engine import Base
 def _get_child_folder(parent_folder: models.FolderRecord,
                       child_name: str) -> models.FolderRecord | None:
     return next(filter(
-        lambda child: child.folder_name == child_name,
+        lambda child: child.name == child_name,
         parent_folder.child_folders
     ), None)
 
@@ -31,7 +31,7 @@ def _update_record(db: Session, record: Base) -> Base:
     return record
 
 
-def get_key(db: Session, key_id: str) -> models.KeyRecord | None:
+def get_key_by_id(db: Session, key_id: str) -> models.KeyRecord | None:
     return db.query(models.KeyRecord).filter_by(id=key_id).first()
 
 
@@ -53,7 +53,7 @@ def find_folder(db: Session, **filters) -> models.FolderRecord | None:
     return db.query(models.FolderRecord).filter_by(**filters).first()
 
 
-def create_or_return_root_folder(db: Session,
+def return_or_create_root_folder(db: Session,
                                  key_record: models.KeyRecord) -> models.FolderRecord:
     existing_folder_record = db.query(models.FolderRecord).filter_by(
         owner=key_record,
@@ -63,61 +63,49 @@ def create_or_return_root_folder(db: Session,
         return existing_folder_record
     folder_record = models.FolderRecord(
         owner=key_record,
-        folder_name=models.ROOT_PATH,
+        name=models.ROOT_PATH,
         full_path=models.ROOT_PATH
     )
-    key_record.folders.append(folder_record)
-    _update_record(db, key_record)
-    return folder_record
+    return _update_record(db, folder_record)
 
 
 def create_child_folder(db: Session,
                         parent_folder: models.FolderRecord,
-                        folder_name: str) -> models.FolderRecord:
+                        name: str) -> models.FolderRecord:
     child_folder = models.FolderRecord(
-        owner_id=parent_folder.owner_id,
-        folder_name=folder_name,
-        full_path=os.path.join(parent_folder.full_path, folder_name)
+        parent_folder=parent_folder,
+        name=name,
+        full_path=os.path.join(parent_folder.full_path, name)
     )
-    parent_folder.child_folders.append(child_folder)
-    db.add(parent_folder)
-    db.commit()
-    db.refresh(child_folder)
-    return child_folder
+    return _update_record(db, child_folder)
 
 
 def create_folders_recursively(db: Session,
-                               owner_id: str,
+                               key_record: models.KeyRecord,
                                folder_path: str) -> models.FolderRecord:
+    current_folder = return_or_create_root_folder(db, key_record)
     path_components = split_into_components(folder_path)
-    parent_folder = create_or_return_root_folder(db, owner_id)
     for folder_name in path_components:
-        existing_child = _get_child_folder(parent_folder, folder_name)
+        existing_child = _get_child_folder(current_folder, folder_name)
         if existing_child:
-            parent_folder = existing_child
+            current_folder = existing_child
             continue
-        new_folder = models.FolderRecord(
-            owner_id=owner_id,
-            parent_folder_id=parent_folder.id,
-            folder_name=folder_name,
-            full_path=os.path.join(parent_folder.full_path, folder_name)
-        )
-        parent_folder = create_child_folder(db, new_folder, folder_name)
-    return parent_folder
+        current_folder = create_child_folder(db, current_folder, folder_name)
+    return current_folder
 
 
 def update_file_record(db: Session,
                        folder: models.FolderRecord,
-                       storage_id: str,
                        filename: str,
+                       storage: models.StorageRecord,
                        size: int) -> models.FileRecord:
     existing_file = _get_child_file(folder, filename)
     file_record = existing_file or models.FileRecord(
-        folder_id=folder.id,
+        folder=folder,
         filename=filename,
         full_path=os.path.join(folder.full_path, filename)
     )
-    file_record.storage_id = storage_id
+    file_record.storage = storage
     file_record.size = size
     return _update_record(db, file_record)
 
@@ -125,5 +113,5 @@ def update_file_record(db: Session,
 def list_folder(folder: models.FolderRecord) -> dict[str, list[str]]:
     return {
         "files": list(map(lambda file: file.filename, folder.files)),
-        "folders": list(map(lambda folder: folder.folder_name, folder.child_folders))
+        "folders": list(map(lambda folder: folder.name, folder.child_folders))
     }

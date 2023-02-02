@@ -17,7 +17,7 @@ get_db = create_get_db_dependency(SessionLocal)
 
 
 def get_key(key_id: str = Header(), db: Session = Depends(get_db)) -> PublicKEK:
-    key_record = crud.get_key(db, key_id)
+    key_record = crud.get_key_by_id(db, key_id)
     if key_record is None:
         raise exceptions.RegistrationRequired(key_id)
     public_key = PublicKEK.load(key_record.public_key.encode("ascii"))

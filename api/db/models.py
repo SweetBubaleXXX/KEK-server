@@ -25,7 +25,7 @@ class FolderRecord(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid4()))
     owner_id = Column(String, ForeignKey("public_keys.id"))
     parent_id = Column(String, ForeignKey("folders.id"), nullable=True)
-    folder_name = Column(String, default=ROOT_PATH)
+    name = Column(String, default=ROOT_PATH)
     full_path = Column(String)
 
     owner = relationship("KeyRecord", back_populates="folders")

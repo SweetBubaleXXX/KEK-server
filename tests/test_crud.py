@@ -19,14 +19,14 @@ class TestCrud(unittest.TestCase):
         key_record = models.KeyRecord(id=key_id, public_key=public_key)
         self.session.add(key_record)
         self.session.commit()
-        found_key = crud.get_key(self.session, key_id)
+        found_key = crud.get_key_by_id(self.session, key_id)
         self.assertEqual(found_key.public_key, public_key)
 
     def test_get_key_not_found(self):
         key_record = models.KeyRecord(id="key_id", public_key="public_key")
         self.session.add(key_record)
         self.session.commit()
-        found_key = crud.get_key(self.session, "unknown_id")
+        found_key = crud.get_key_by_id(self.session, "unknown_id")
         self.assertIsNone(found_key)
 
     def test_add_key(self):
@@ -39,7 +39,7 @@ class TestCrud(unittest.TestCase):
         key_record = models.KeyRecord(id="key_id", public_key="public_key")
         self.session.add(key_record)
         self.session.commit()
-        crud.create_or_return_root_folder(self.session, key_record)
+        crud.return_or_create_root_folder(self.session, key_record)
         folder_record = self.session.query(models.FolderRecord).filter_by(
             owner_id=key_record.id,
             full_path=models.ROOT_PATH
@@ -50,8 +50,8 @@ class TestCrud(unittest.TestCase):
         key_record = models.KeyRecord(id="key_id", public_key="public_key")
         self.session.add(key_record)
         self.session.commit()
-        crud.create_or_return_root_folder(self.session, key_record)
-        crud.create_or_return_root_folder(self.session, key_record)
+        crud.return_or_create_root_folder(self.session, key_record)
+        crud.return_or_create_root_folder(self.session, key_record)
         root_folder_count = self.session.query(models.FolderRecord).filter_by(
             owner_id=key_record.id,
             full_path=models.ROOT_PATH

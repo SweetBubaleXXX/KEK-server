@@ -23,5 +23,5 @@ def register_key(
     except (KeyLoadingError, AssertionError):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Could not load public key")
     verify_token(signed_token, key, get_session())
-    if not crud.get_key(db, request.key_id):
+    if not crud.get_key_by_id(db, request.key_id):
         crud.add_key(db, request.key_id, request.public_key)
