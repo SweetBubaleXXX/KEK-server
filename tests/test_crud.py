@@ -16,16 +16,12 @@ class TestCrud(unittest.TestCase):
     def test_get_key(self):
         key_id = "key_id"
         public_key = "public_key"
-        key_record = models.KeyRecord(id=key_id, public_key=public_key)
-        self.session.add(key_record)
-        self.session.commit()
+        self._create_key_record(key_id, public_key)
         found_key = crud.get_key_by_id(self.session, key_id)
         self.assertEqual(found_key.public_key, public_key)
 
     def test_get_key_not_found(self):
-        key_record = models.KeyRecord(id="key_id", public_key="public_key")
-        self.session.add(key_record)
-        self.session.commit()
+        self._create_key_record()
         found_key = crud.get_key_by_id(self.session, "unknown_id")
         self.assertIsNone(found_key)
 
@@ -36,9 +32,7 @@ class TestCrud(unittest.TestCase):
         self.assertEqual(key_record.storage_size_limit, self.settings.user_storage_size_limit)
 
     def test_create_root_folder(self):
-        key_record = models.KeyRecord(id="key_id", public_key="public_key")
-        self.session.add(key_record)
-        self.session.commit()
+        key_record = self._create_key_record()
         crud.return_or_create_root_folder(self.session, key_record)
         folder_record = self.session.query(models.FolderRecord).filter_by(
             owner_id=key_record.id,
@@ -47,9 +41,7 @@ class TestCrud(unittest.TestCase):
         self.assertEqual(folder_record.owner, key_record)
 
     def test_create_root_folder_twice(self):
-        key_record = models.KeyRecord(id="key_id", public_key="public_key")
-        self.session.add(key_record)
-        self.session.commit()
+        key_record = self._create_key_record()
         crud.return_or_create_root_folder(self.session, key_record)
         crud.return_or_create_root_folder(self.session, key_record)
         root_folder_count = self.session.query(models.FolderRecord).filter_by(
@@ -57,3 +49,10 @@ class TestCrud(unittest.TestCase):
             full_path=models.ROOT_PATH
         ).count()
         self.assertEqual(root_folder_count, 1)
+
+    def _create_key_record(self, id="key_id", public_key="public_key") -> models.KeyRecord:
+        key_record = models.KeyRecord(id=id, public_key=public_key)
+        self.session.add(key_record)
+        self.session.commit()
+        self.session.refresh(key_record)
+        return key_record
