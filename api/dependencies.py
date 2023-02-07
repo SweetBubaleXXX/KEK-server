@@ -6,7 +6,7 @@ from KEK.exceptions import VerificationError
 from KEK.hybrid import PublicKEK
 from sqlalchemy.orm import Session
 
-from .db import crud
+from .db import crud, models
 from .db.dependency import create_get_db_dependency
 from .db.engine import SessionLocal
 from .exceptions import exceptions
@@ -16,10 +16,14 @@ get_session = create_session_dependency()
 get_db = create_get_db_dependency(SessionLocal)
 
 
-def get_key(key_id: str = Header(), db: Session = Depends(get_db)) -> PublicKEK:
+def get_key_record(key_id: str = Header(), db: Session = Depends(get_db)) -> models.KeyRecord:
     key_record = crud.get_key_by_id(db, key_id)
     if key_record is None:
         raise exceptions.RegistrationRequired(key_id)
+    return key_record
+
+
+def get_key(key_record: models.KeyRecord = Depends(get_key_record)) -> PublicKEK:
     public_key = PublicKEK.load(key_record.public_key.encode("ascii"))
     return public_key
 
