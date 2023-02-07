@@ -1,4 +1,3 @@
-import unittest
 from base64 import b64encode
 
 from fastapi import status
@@ -8,18 +7,13 @@ from KEK.hybrid import PrivateKEK
 
 from api.app import app
 from api.db import models
-from tests.setup_test_env import (setup_config, setup_database,
-                                  teardown_database)
+from tests.setup_test_env import TestWithDatabase
 
 
-class TestRegistration(unittest.TestCase):
+class TestRegistration(TestWithDatabase):
     def setUp(self):
-        self.settings = setup_config()
-        self.session = setup_database()
+        super().setUp()
         self.client = TestClient(app)
-
-    def tearDown(self):
-        teardown_database(self.session)
 
     def test_empty_request(self):
         response = self.client.post("/register", json={})

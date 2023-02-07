@@ -1,27 +1,13 @@
-import unittest
-
 from api.db import crud, models
-from tests.setup_test_env import (setup_config, setup_database,
-                                  teardown_database)
+from tests.setup_test_env import TestWithKeyRecord
 
 
-class TestCrud(unittest.TestCase):
-    def setUp(self):
-        self.settings = setup_config()
-        self.session = setup_database()
-
-    def tearDown(self):
-        teardown_database(self.session)
-
+class TestCrud(TestWithKeyRecord):
     def test_get_key(self):
-        key_id = "key_id"
-        public_key = "public_key"
-        self._create_key_record(key_id, public_key)
-        found_key = crud.get_key_by_id(self.session, key_id)
-        self.assertEqual(found_key.public_key, public_key)
+        found_key = crud.get_key_by_id(self.session, self.key_record.id)
+        self.assertEqual(found_key.public_key, self.key_record.public_key)
 
     def test_get_key_not_found(self):
-        self._create_key_record()
         found_key = crud.get_key_by_id(self.session, "unknown_id")
         self.assertIsNone(found_key)
 
@@ -32,27 +18,18 @@ class TestCrud(unittest.TestCase):
         self.assertEqual(key_record.storage_size_limit, self.settings.user_storage_size_limit)
 
     def test_create_root_folder(self):
-        key_record = self._create_key_record()
-        crud.return_or_create_root_folder(self.session, key_record)
+        crud.return_or_create_root_folder(self.session, self.key_record)
         folder_record = self.session.query(models.FolderRecord).filter_by(
-            owner_id=key_record.id,
+            owner_id=self.key_record.id,
             full_path=models.ROOT_PATH
         ).first()
-        self.assertEqual(folder_record.owner, key_record)
+        self.assertEqual(folder_record.owner, self.key_record)
 
     def test_create_root_folder_twice(self):
-        key_record = self._create_key_record()
-        crud.return_or_create_root_folder(self.session, key_record)
-        crud.return_or_create_root_folder(self.session, key_record)
+        crud.return_or_create_root_folder(self.session, self.key_record)
+        crud.return_or_create_root_folder(self.session, self.key_record)
         root_folder_count = self.session.query(models.FolderRecord).filter_by(
-            owner_id=key_record.id,
+            owner_id=self.key_record.id,
             full_path=models.ROOT_PATH
         ).count()
         self.assertEqual(root_folder_count, 1)
-
-    def _create_key_record(self, id="key_id", public_key="public_key") -> models.KeyRecord:
-        key_record = models.KeyRecord(id=id, public_key=public_key)
-        self.session.add(key_record)
-        self.session.commit()
-        self.session.refresh(key_record)
-        return key_record
