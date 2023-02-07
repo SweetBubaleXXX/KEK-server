@@ -128,9 +128,11 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# VSCode
 .vscode
+.devcontainer
 
 # Environment files
-production.env
-development.env
-*.config
+.config
+.config.dev
+.config.production
