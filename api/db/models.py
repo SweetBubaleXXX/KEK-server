@@ -5,8 +5,7 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from .engine import Base
-
-ROOT_PATH = "/"
+from ..utils.path_utils import ROOT_PATH
 
 
 class KeyRecord(Base):

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from ..db import crud, models
 from ..dependencies import get_db, get_key_record, verify_token
 from ..schemas import CreateFolder
-from ..utils.path_formatters import split_head_and_tail
+from ..utils.path_utils import split_head_and_tail
 
 router = APIRouter(tags=["folders"], dependencies=[Depends(verify_token)])
 

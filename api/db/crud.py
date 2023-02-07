@@ -3,7 +3,7 @@ import os
 from sqlalchemy.orm import Session
 
 from .. import config
-from ..utils.path_formatters import split_into_components
+from ..utils.path_utils import split_into_components
 from . import models
 from .engine import Base
 
