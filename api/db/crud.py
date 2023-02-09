@@ -1,4 +1,4 @@
-import os
+import posixpath
 
 from sqlalchemy.orm import Session
 
@@ -75,7 +75,7 @@ def create_child_folder(db: Session,
     child_folder = models.FolderRecord(
         parent_folder=parent_folder,
         name=name,
-        full_path=os.path.join(parent_folder.full_path, name)
+        full_path=posixpath.join(parent_folder.full_path, name)
     )
     return _update_record(db, child_folder)
 
@@ -103,7 +103,7 @@ def update_file_record(db: Session,
     file_record = existing_file or models.FileRecord(
         folder=folder,
         filename=filename,
-        full_path=os.path.join(folder.full_path, filename)
+        full_path=posixpath.join(folder.full_path, filename)
     )
     file_record.storage = storage
     file_record.size = size

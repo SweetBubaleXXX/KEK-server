@@ -11,4 +11,4 @@ app.add_exception_handler(exceptions.AuthenticationRequired,
                           handlers.authentication_required_handler)
 
 app.include_router(registration.router)
-app.include_router(folders.router)
+app.include_router(folders.router, prefix="/folders")
