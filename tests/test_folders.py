@@ -1,13 +1,8 @@
+from fastapi import status
 
-from fastapi.testclient import TestClient
-
-from api.app import app
-from tests.setup_test_env import TestWithKeyRecord
+from tests.base_tests import TestWithClient, TestWithKeyRecord, add_test_authentication
 
 
-class TestFoldres(TestWithKeyRecord):
-    def setUp(self):
-        super().setUp()
-        self.client = TestClient(app)
-
-    def test_create_folder(): ...
+@add_test_authentication("/folders/mkdir")
+class TestFoldres(TestWithKeyRecord, TestWithClient):
+    def test_create_folder(self): ...

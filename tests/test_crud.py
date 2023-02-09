@@ -1,5 +1,5 @@
 from api.db import crud, models
-from tests.setup_test_env import TestWithKeyRecord
+from tests.base_tests import TestWithKeyRecord
 
 
 class TestCrud(TestWithKeyRecord):
