@@ -12,26 +12,26 @@ from tests.setup_test_env import (setup_config, setup_database,
 
 
 def add_test_authentication(url):
-    def decorator(cls):
-        def test_unauthorized(self):
+    def decorator(cls: Type[TestWithKeyRecordAndClient]):
+        def test_unauthorized(self: TestWithKeyRecordAndClient):
             response = self.client.post(url, headers={
                 "Key-Id": self.key_record.id
             })
             self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-        def test_registration_required_false(self):
+        def test_registration_required_false(self: TestWithKeyRecordAndClient):
             response = self.client.post(url, headers={
                 "Key-Id": self.key_record.id
             })
             self.assertFalse(response.json().get("registration_required"))
 
-        def test_registration_required_true(self):
+        def test_registration_required_true(self: TestWithKeyRecordAndClient):
             response = self.client.post(url, headers={
                 "Key-Id": "unknown_id"
             })
             self.assertTrue(response.json().get("registration_required"))
 
-        def test_invalid_token(self):
+        def test_invalid_token(self: TestWithKeyRecordAndClient):
             response = self.client.post(url, headers={
                 "Key-Id": self.key_record.id
             })
@@ -42,17 +42,13 @@ def add_test_authentication(url):
             })
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-        cls.test_unauthorized = test_unauthorized
-        cls.test_registration_required_false = test_registration_required_false
-        cls.test_registration_required_true = test_registration_required_true
-        cls.test_invalid_token = test_invalid_token
+        setattr(cls, "test_unauthorized", test_unauthorized)
+        setattr(cls, "test_registration_required_false", test_registration_required_false)
+        setattr(cls, "test_registration_required_true", test_registration_required_true)
+        setattr(cls, "test_invallid_token", test_invalid_token)
         return cls
 
     return decorator
-
-
-class TestWithClient():
-    client = TestClient(app)
 
 
 class TestWithDatabase(unittest.TestCase):
@@ -79,3 +75,11 @@ class TestWithKeyRecord(TestWithDatabase):
         self.session.commit()
         self.session.refresh(key_record)
         return key_record
+
+
+class TestWithClient():
+    client = TestClient(app)
+
+
+class TestWithKeyRecordAndClient(TestWithKeyRecord, TestWithClient):
+    pass
