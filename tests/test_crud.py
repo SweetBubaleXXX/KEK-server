@@ -60,6 +60,7 @@ class TestCrud(TestWithKeyRecord):
         self.session.commit()
         self.session.refresh(parent_folder)
         child_folder = crud.create_child_folder(self.session, parent_folder, "child_folder")
+        self.assertEqual(child_folder.owner_id, self.key_record.id)
         self.assertEqual(child_folder.full_path, "parent_folder/child_folder")
 
     def test_create_folders_recursively(self):

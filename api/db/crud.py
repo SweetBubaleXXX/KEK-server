@@ -73,6 +73,7 @@ def create_child_folder(db: Session,
                         parent_folder: models.FolderRecord,
                         name: str) -> models.FolderRecord:
     child_folder = models.FolderRecord(
+        owner=parent_folder.owner,
         parent_folder=parent_folder,
         name=name,
         full_path=posixpath.join(parent_folder.full_path, name)
