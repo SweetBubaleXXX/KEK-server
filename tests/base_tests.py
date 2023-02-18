@@ -14,26 +14,26 @@ from tests.setup_test_env import (setup_config, setup_database,
 
 
 def add_test_authentication(url):
-    def decorator(cls: Type[TestWithKeyRecordAndClient]):
-        def test_unauthorized(self: TestWithKeyRecordAndClient):
+    def decorator(cls: Type[TestWithRegisteredKey]):
+        def test_unauthorized(self: TestWithRegisteredKey):
             response = self.client.post(url, headers={
                 "Key-Id": self.key_record.id
             })
             self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-        def test_registration_required_false(self: TestWithKeyRecordAndClient):
+        def test_registration_required_false(self: TestWithRegisteredKey):
             response = self.client.post(url, headers={
                 "Key-Id": self.key_record.id
             })
             self.assertFalse(response.json().get("registration_required"))
 
-        def test_registration_required_true(self: TestWithKeyRecordAndClient):
+        def test_registration_required_true(self: TestWithRegisteredKey):
             response = self.client.post(url, headers={
                 "Key-Id": "unknown_id"
             })
             self.assertTrue(response.json().get("registration_required"))
 
-        def test_invalid_token(self: TestWithKeyRecordAndClient):
+        def test_invalid_token(self: TestWithRegisteredKey):
             response = self.client.post(url, headers={
                 "Key-Id": self.key_record.id
             })
@@ -83,7 +83,18 @@ class TestWithClient():
     client = TestClient(app)
 
 
-class TestWithKeyRecordAndClient(TestWithKeyRecord, TestWithClient):
+class TestWithRegisteredKey(TestWithKeyRecord, TestWithClient):
+    def setUp(self):
+        super().setUp()
+        root_folder = models.FolderRecord(
+            owner=self.key_record,
+            name=models.ROOT_PATH,
+            full_path=models.ROOT_PATH
+        )
+        self.session.add(root_folder)
+        self.session.commit()
+        self.session.refresh(self.key_record)
+
     def __request(self, method: str, *args, **kwargs) -> Response:
         match method.casefold():
             case "get":
