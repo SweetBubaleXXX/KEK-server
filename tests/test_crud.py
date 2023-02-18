@@ -67,7 +67,7 @@ class TestCrud(TestWithKeyRecord):
         nested_folder = crud.create_folders_recursively(
             self.session,
             self.key_record,
-            "/great_grandfather/grandfather/parent/child"
+            "/great_grandparent/grandparent/parent/child"
         )
         root_folder = nested_folder.parent_folder.parent_folder.parent_folder.parent_folder
         self.assertEqual(root_folder.owner, self.key_record)

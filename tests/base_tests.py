@@ -1,8 +1,10 @@
 import unittest
+from base64 import b64encode
 from typing import Type
 
 from fastapi import status
 from fastapi.testclient import TestClient
+from httpx import Response
 from KEK.hybrid import PrivateKEK
 
 from api.app import app
@@ -64,9 +66,9 @@ class TestWithKeyRecord(TestWithDatabase):
     def setUp(self):
         super().setUp()
         self.key = PrivateKEK.generate()
-        self.key_record = self._add_key_to_db()
+        self.key_record = self.__add_key_to_db()
 
-    def _add_key_to_db(self) -> models.KeyRecord:
+    def __add_key_to_db(self) -> models.KeyRecord:
         key_record = models.KeyRecord(
             id=self.key.key_id.hex(),
             public_key=self.key.public_key.serialize().decode("utf-8")
@@ -82,4 +84,23 @@ class TestWithClient():
 
 
 class TestWithKeyRecordAndClient(TestWithKeyRecord, TestWithClient):
-    pass
+    def __request(self, method: str, *args, **kwargs) -> Response:
+        match method.casefold():
+            case "get":
+                return self.client.get(*args, **kwargs)
+            case "post":
+                return self.client.post(*args, **kwargs)
+            case "delete":
+                return self.client.delete(*args, **kwargs)
+            case _:
+                raise ValueError("Method not recognized")
+
+    def authorized_request(self, method: str, *args, headers: dict | None = None, **kwargs):
+        if headers is None:
+            headers = {}
+        headers = headers | {"key-id": self.key_record.id}
+        response = self.__request(method, *args, headers=headers, **kwargs)
+        token = response.json().get("token")
+        signed_token = b64encode(self.key.sign(token.encode("utf-8")))
+        headers = headers | {"Signed-Token": signed_token}
+        return self.__request(method, *args, headers=headers, **kwargs)
