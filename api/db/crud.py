@@ -1,9 +1,10 @@
+import itertools
 import posixpath
 
 from sqlalchemy.orm import Session
 
 from .. import config
-from ..utils.path_utils import split_into_components
+from ..utils.path_utils import split_head_and_tail, split_into_components
 from . import models
 from .engine import Base
 
@@ -22,6 +23,14 @@ def _get_child_file(parent_folder: models.FolderRecord,
         lambda child_file: child_file.filename == filename,
         parent_folder.files
     ), None)
+
+
+def _update_child_full_paths(folder: models.FolderRecord):
+    for file in folder.files:
+        file.full_path = posixpath.join(folder.full_path, file.filename)
+    for child_folder in folder.child_folders:
+        child_folder.full_path = posixpath.join(folder.full_path, child_folder.name)
+        _update_child_full_paths(child_folder)
 
 
 def _update_record(db: Session, record: Base) -> Base:
@@ -95,6 +104,23 @@ def create_folders_recursively(db: Session,
     return current_folder
 
 
+def rename_folder(db: Session,
+                  folder: models.FolderRecord,
+                  new_name: str):
+    folder.name = new_name
+    parent_path, _ = split_head_and_tail(folder.full_path)
+    folder.full_path = posixpath.join(parent_path, new_name)
+    _update_child_full_paths(folder)
+    return _update_record(db, folder)
+
+
+def list_folder(folder: models.FolderRecord) -> dict[str, list[str]]:
+    return {
+        "files": list(map(lambda file: file.filename, folder.files)),
+        "folders": list(map(lambda folder: folder.name, folder.child_folders))
+    }
+
+
 def update_file_record(db: Session,
                        folder: models.FolderRecord,
                        filename: str,
@@ -109,10 +135,3 @@ def update_file_record(db: Session,
     file_record.storage = storage
     file_record.size = size
     return _update_record(db, file_record)
-
-
-def list_folder(folder: models.FolderRecord) -> dict[str, list[str]]:
-    return {
-        "files": list(map(lambda file: file.filename, folder.files)),
-        "folders": list(map(lambda folder: folder.name, folder.child_folders))
-    }
