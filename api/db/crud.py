@@ -106,7 +106,7 @@ def create_folders_recursively(db: Session,
 
 def rename_folder(db: Session,
                   folder: models.FolderRecord,
-                  new_name: str):
+                  new_name: str) -> models.FolderRecord:
     folder.name = new_name
     parent_path, _ = split_head_and_tail(folder.full_path)
     folder.full_path = posixpath.join(parent_path, new_name)

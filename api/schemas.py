@@ -8,11 +8,6 @@ class PublicKeyInfo(BaseModel):
     public_key: str
 
 
-class CreateFolder(BaseModel):
-    path: str
-    recursive: bool = False
-
-
 class TokenResponse(BaseModel):
     token: UUID
 
@@ -20,3 +15,13 @@ class TokenResponse(BaseModel):
 class DetailedTokenResponse(TokenResponse):
     detail: str
     registration_required: bool = False
+
+
+class CreateFolder(BaseModel):
+    path: str
+    recursive: bool = False
+
+
+class RenameItem(BaseModel):
+    path: str
+    new_name: str

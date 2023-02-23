@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from ..db import crud, models
 from ..dependencies import get_db, get_key_record, verify_token
-from ..schemas import CreateFolder
+from ..schemas import CreateFolder, RenameItem
 from ..utils.path_utils import split_head_and_tail
 
 router = APIRouter(tags=["folders"], dependencies=[Depends(verify_token)])
@@ -24,6 +24,18 @@ def create_folder(
         if parent_folder is None:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Parent folder doesn't exist")
         crud.create_child_folder(db, parent_folder, folder_name)
+
+
+@router.post("/rename")
+def rename_folder(
+    request: RenameItem,
+    key_record: models.KeyRecord = Depends(get_key_record),
+    db: Session = Depends(get_db)
+):
+    folder_record = crud.find_folder(db, owner=key_record, full_path=request.path)
+    if folder_record is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
+    crud.rename_folder(db, folder_record, request.new_name)
 
 
 @router.get("/list")

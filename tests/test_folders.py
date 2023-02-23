@@ -33,6 +33,30 @@ class TestFoldres(TestWithRegisteredKey):
         ).first()
         self.assertEqual(nested_folder.parent_folder.name, "parent")
 
+    def test_rename_folder(self):
+        response = self.authorized_request("post", "/folders/mkdir", json={
+            "path": "/grandparent/parent/child",
+            "recursive": True
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.authorized_request("post", "/folders/rename", json={
+            "path": "/grandparent",
+            "new_name": "renamed_grandparent"
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        renamed_child = self.session.query(models.FolderRecord).filter_by(
+            owner=self.key_record,
+            full_path="/renamed_grandparent/parent/child"
+        ).first()
+        self.assertEqual(renamed_child.parent_folder.parent_folder.name, "renamed_grandparent")
+
+    def test_rename_folder_not_exists(self):
+        response = self.authorized_request("post", "/folders/rename", json={
+            "path": "/nonexistent_folder",
+            "new_name": "renamed_grandparent"
+        })
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
     def test_list_folder(self):
         child_count = 5
         for i in range(child_count):
@@ -72,5 +96,5 @@ class TestFoldres(TestWithRegisteredKey):
         folder_still_exists = self.session.query(models.FolderRecord).filter_by(
             owner=self.key_record,
             full_path="/folder"
-        ).count()
+        ).exists()
         self.assertFalse(folder_still_exists)
