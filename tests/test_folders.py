@@ -48,6 +48,12 @@ class TestFoldres(TestWithRegisteredKey):
         child_names = response.json()["folders"]
         self.assertEqual(len(child_names), child_count)
 
+    def test_list_folder_not_exists(self):
+        response = self.authorized_request("get", "/folders/list", headers={
+            "path": "nonexistent_path"
+        })
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
     def test_move_folder(self):  # Not working
         response = self.authorized_request("post", "/folders/mkdir", json={
             "path": "/parent_1/child",
