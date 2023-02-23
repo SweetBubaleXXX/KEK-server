@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Header
 from fastapi.exceptions import HTTPException
 from sqlalchemy.orm import Session
 
@@ -14,7 +14,7 @@ router = APIRouter(tags=["folders"], dependencies=[Depends(verify_token)])
 def create_folder(
     request: CreateFolder,
     key_record: models.KeyRecord = Depends(get_key_record),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
     if request.recursive:
         crud.create_folders_recursively(db, key_record, request.path)
@@ -24,3 +24,23 @@ def create_folder(
         if parent_folder is None:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Parent folder doesn't exist")
         crud.create_child_folder(db, parent_folder, folder_name)
+
+
+@router.get("/list")
+def list_folder(
+    path: str = Header(),
+    key_record: models.KeyRecord = Depends(get_key_record),
+    db: Session = Depends(get_db)
+) -> dict[str, list[str]]:
+    folder_record = crud.find_folder(db, owner=key_record, full_path=path)
+    if folder_record is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
+    return crud.list_folder(folder_record)
+
+
+@router.delete("/rmdir")
+def delete_folder(
+    path: str = Header(),
+    key_record: models.KeyRecord = Depends(get_key_record),
+    db: Session = Depends(get_db)
+): ...

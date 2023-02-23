@@ -71,3 +71,23 @@ class TestCrud(TestWithKeyRecord):
         )
         root_folder = nested_folder.parent_folder.parent_folder.parent_folder.parent_folder
         self.assertEqual(root_folder.owner, self.key_record)
+
+    def test_list_folder(self):
+        parent_folder = models.FolderRecord(
+            owner=self.key_record,
+            name="parent_folder",
+            full_path="parent_folder"
+        )
+        child_names = [f"folder{i}" for i in range(3)]
+        for child_folder_name in child_names:
+            child_folder = models.FolderRecord(
+                owner=self.key_record,
+                name=child_folder_name,
+                full_path=f"parent_folder/{child_folder_name}"
+            )
+            parent_folder.child_folders.append(child_folder)
+        self.session.add(parent_folder)
+        self.session.commit()
+        self.session.refresh(parent_folder)
+        folder_content = crud.list_folder(parent_folder)
+        self.assertListEqual(folder_content["folders"], child_names)
