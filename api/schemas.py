@@ -25,3 +25,8 @@ class CreateFolder(BaseModel):
 class RenameItem(BaseModel):
     path: str
     new_name: str
+
+
+class MoveItem(BaseModel):
+    path: str
+    destination: str

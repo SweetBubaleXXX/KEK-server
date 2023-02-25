@@ -1,4 +1,3 @@
-import itertools
 import posixpath
 
 from sqlalchemy.orm import Session
@@ -110,6 +109,15 @@ def rename_folder(db: Session,
     folder.name = new_name
     parent_path, _ = split_head_and_tail(folder.full_path)
     folder.full_path = posixpath.join(parent_path, new_name)
+    _update_child_full_paths(folder)
+    return _update_record(db, folder)
+
+
+def move_folder(db: Session,
+                folder: models.FolderRecord,
+                destination_folder: models.FolderRecord) -> models.FolderRecord:
+    folder.parent_folder = destination_folder
+    folder.full_path = posixpath.join(destination_folder.full_path, folder.name)
     _update_child_full_paths(folder)
     return _update_record(db, folder)
 

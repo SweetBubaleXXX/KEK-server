@@ -78,15 +78,25 @@ class TestFoldres(TestWithRegisteredKey):
         })
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_move_folder(self):  # Not working
+    def test_move_folder(self):
         response = self.authorized_request("post", "/folders/mkdir", json={
-            "path": "/parent_1/child",
+            "path": "/parent/child",
             "recursive": True
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        response = self.authorized_request("post", "/folders/mkdir", json={"path": "/parent_1"})
+        response = self.authorized_request("post", "/folders/mkdir", json={"path": "/destination"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        response = self.authorized_request("post", "/folders/move", json={})
+        response = self.authorized_request("post", "/folders/move", json={
+            "path": "/parent/child",
+            "destination": "/destination"
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        old_parent = self.session.query(models.FolderRecord).filter_by(
+            owner=self.key_record,
+            full_path="/parent"
+        ).first()
+        old_parent_has_childs = bool(old_parent.child_folders)
+        self.assertFalse(old_parent_has_childs)
 
     def test_delete_folder(self):  # Not working
         response = self.authorized_request("post", "/folders/mkdir", json={"path": "/folder"})
@@ -96,5 +106,5 @@ class TestFoldres(TestWithRegisteredKey):
         folder_still_exists = self.session.query(models.FolderRecord).filter_by(
             owner=self.key_record,
             full_path="/folder"
-        ).exists()
+        ).count()
         self.assertFalse(folder_still_exists)

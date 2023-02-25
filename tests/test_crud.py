@@ -97,6 +97,31 @@ class TestCrud(TestWithKeyRecord):
         child_full_path = updated_grandparent.child_folders[0].child_folders[0].full_path
         self.assertEqual(child_full_path, "renamed/parent/child")
 
+    def test_move_folder(self):
+        folder_record = models.FolderRecord(
+            owner=self.key_record,
+            name="folder",
+            full_path="folder"
+        )
+        child_folder = models.FolderRecord(
+            owner=self.key_record,
+            parent_folder=folder_record,
+            name="child",
+            full_path="folder/child"
+        )
+        destination_folder = models.FolderRecord(
+            owner=self.key_record,
+            name="destination",
+            full_path="destination"
+        )
+        self.session.add_all((folder_record, child_folder, destination_folder))
+        self.session.commit()
+        self.session.refresh(folder_record)
+        self.session.refresh(destination_folder)
+        updated_folder_record = crud.move_folder(self.session, folder_record, destination_folder)
+        updated_child_folder = updated_folder_record.child_folders[0]
+        self.assertEqual(updated_child_folder.full_path, "destination/folder/child")
+
     def test_list_folder(self):
         parent_folder = models.FolderRecord(
             owner=self.key_record,
