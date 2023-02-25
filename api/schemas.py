@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, root_validator
 
 
 class PublicKeyInfo(BaseModel):
@@ -30,3 +30,11 @@ class RenameItem(BaseModel):
 class MoveItem(BaseModel):
     path: str
     destination: str
+
+    @root_validator
+    def validate_destination_path(cls, values):
+        path = values["path"]
+        destination = values["destination"]
+        if destination.startswith(path):
+            raise ValueError("Destination should be a higher level directory")
+        return values

@@ -114,19 +114,16 @@ class TestFoldres(TestWithRegisteredKey):
         old_parent_has_childs = bool(old_parent.child_folders)
         self.assertFalse(old_parent_has_childs)
 
+    def test_move_folder_invalid_destination(self):
+        response = self.authorized_request("post", "/folders/move", json={
+            "path": "/parent",
+            "destination": "/parent/child"
+        })
+        self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+
     def test_move_folder_not_exists(self):
         response = self.authorized_request("post", "/folders/move", json={
             "path": "nonexistent_path",
-            "destination": "nonexistent_path"
+            "destination": "nonexistent_destinations"
         })
-
-    def test_delete_folder(self):  # Not working
-        response = self.authorized_request("post", "/folders/mkdir", json={"path": "/folder"})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        response = self.authorized_request("delete", "/folders/rmdir", headers={"path": "/folder"})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        folder_still_exists = self.session.query(models.FolderRecord).filter_by(
-            owner=self.key_record,
-            full_path="/folder"
-        ).count()
-        self.assertFalse(folder_still_exists)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

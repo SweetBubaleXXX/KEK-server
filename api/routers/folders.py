@@ -42,18 +42,6 @@ def rename_folder(
     crud.rename_folder(db, folder_record, request.new_name)
 
 
-@router.get("/list")
-def list_folder(
-    path: str = Header(),
-    key_record: models.KeyRecord = Depends(get_key_record),
-    db: Session = Depends(get_db)
-) -> dict[str, list[str]]:
-    folder_record = crud.find_folder(db, owner=key_record, full_path=path)
-    if folder_record is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
-    return crud.list_folder(folder_record)
-
-
 @router.post("/move")
 def move_folder(
     request: MoveItem,
@@ -66,6 +54,18 @@ def move_folder(
     if not (folder_record and destination_folder_record):
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
     crud.move_folder(db, folder_record, destination_folder_record)
+
+
+@router.get("/list")
+def list_folder(
+    path: str = Header(),
+    key_record: models.KeyRecord = Depends(get_key_record),
+    db: Session = Depends(get_db)
+) -> dict[str, list[str]]:
+    folder_record = crud.find_folder(db, owner=key_record, full_path=path)
+    if folder_record is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
+    return crud.list_folder(folder_record)
 
 
 @router.delete("/rmdir")
