@@ -35,6 +35,10 @@ def rename_folder(
     folder_record = crud.find_folder(db, owner=key_record, full_path=request.path)
     if folder_record is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
+    sibling_folders = crud.list_folder(folder_record.parent_folder)["folders"]
+    if request.new_name in sibling_folders:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                            detail="Folder/file with this name already exists")
     crud.rename_folder(db, folder_record, request.new_name)
 
 

@@ -50,6 +50,22 @@ class TestFoldres(TestWithRegisteredKey):
         ).first()
         self.assertEqual(renamed_child.parent_folder.parent_folder.name, "renamed_grandparent")
 
+    def test_rename_folder_already_exists(self):
+        response = self.authorized_request("post", "/folders/mkdir", json={
+            "path": "/parent/child",
+            "recursive": True
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.authorized_request("post", "/folders/mkdir", json={
+            "path": "/parent/existing_child"
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.authorized_request("post", "/folders/rename", json={
+            "path": "/parent/child",
+            "new_name": "existing_child"
+        })
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_rename_folder_not_exists(self):
         response = self.authorized_request("post", "/folders/rename", json={
             "path": "/nonexistent_folder",
@@ -97,6 +113,12 @@ class TestFoldres(TestWithRegisteredKey):
         ).first()
         old_parent_has_childs = bool(old_parent.child_folders)
         self.assertFalse(old_parent_has_childs)
+
+    def test_move_folder_not_exists(self):
+        response = self.authorized_request("post", "/folders/move", json={
+            "path": "nonexistent_path",
+            "destination": "nonexistent_path"
+        })
 
     def test_delete_folder(self):  # Not working
         response = self.authorized_request("post", "/folders/mkdir", json={"path": "/folder"})
