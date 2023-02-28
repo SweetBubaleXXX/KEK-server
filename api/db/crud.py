@@ -61,6 +61,10 @@ def find_folder(db: Session, **filters) -> models.FolderRecord | None:
     return db.query(models.FolderRecord).filter_by(**filters).first()
 
 
+def find_file(db: Session, **filters) -> models.FileRecord | None:
+    return db.query(models.FileRecord).filter_by(**filters).first()
+
+
 def return_or_create_root_folder(db: Session,
                                  key_record: models.KeyRecord) -> models.FolderRecord:
     existing_folder_record = db.query(models.FolderRecord).filter_by(
@@ -129,17 +133,20 @@ def list_folder(folder: models.FolderRecord) -> dict[str, list[str]]:
     }
 
 
-def update_file_record(db: Session,
+def update_file_record(db: Session, file_record: models.FileRecord) -> models.FileRecord:
+    return _update_record(db, file_record)
+
+
+def create_file_record(db: Session,
                        folder: models.FolderRecord,
                        filename: str,
                        storage: models.StorageRecord,
                        size: int) -> models.FileRecord:
-    existing_file = _get_child_file(folder, filename)
-    file_record = existing_file or models.FileRecord(
+    file_record = models.FileRecord(
         folder=folder,
+        storage=storage,
         filename=filename,
-        full_path=posixpath.join(folder.full_path, filename)
+        full_path=posixpath.join(folder.full_path, filename),
+        size=size
     )
-    file_record.storage = storage
-    file_record.size = size
     return _update_record(db, file_record)

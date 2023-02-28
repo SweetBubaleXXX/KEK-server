@@ -21,6 +21,12 @@ class TestFoldres(TestWithRegisteredKey):
         ).first()
         self.assertEqual(created_folder.name, "folder")
 
+    def test_create_folder_already_exists(self):
+        response = self.authorized_request("post", "/folders/mkdir", json={"path": "/folder"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.authorized_request("post", "/folders/mkdir", json={"path": "/folder"})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_create_folder_recursive(self):
         response = self.authorized_request("post", "/folders/mkdir", json={
             "path": "/grandparent/parent/child",

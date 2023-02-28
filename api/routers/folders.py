@@ -19,6 +19,9 @@ def create_folder(
     if request.recursive:
         crud.create_folders_recursively(db, key_record, request.path)
     else:
+        existing_folder = crud.find_folder(db, owner=key_record, full_path=request.path)
+        if existing_folder:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Folder already exists")
         parent_path, folder_name = split_head_and_tail(request.path)
         parent_folder = crud.find_folder(db, owner=key_record, full_path=parent_path)
         if parent_folder is None:
