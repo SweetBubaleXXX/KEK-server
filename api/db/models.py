@@ -64,3 +64,6 @@ class StorageRecord(Base):
     priority = Column(Integer, default=1)
 
     files = relationship("FileRecord", back_populates="storage")
+
+
+ModelType = KeyRecord | FolderRecord | FileRecord | StorageRecord

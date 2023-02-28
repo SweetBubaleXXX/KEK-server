@@ -32,7 +32,7 @@ def _update_child_full_paths(folder: models.FolderRecord):
         _update_child_full_paths(child_folder)
 
 
-def _update_record(db: Session, record: Base) -> Base:
+def update_record(db: Session, record: models.ModelType) -> models.ModelType:
     db.add(record)
     db.commit()
     db.refresh(record)
@@ -54,7 +54,7 @@ def add_key(db: Session,
         storage_size_limit=storage_size_limit or config.settings.user_storage_size_limit,
         is_activated=is_activated or config.settings.user_is_activated_default
     )
-    return _update_record(db, key_record)
+    return update_record(db, key_record)
 
 
 def find_folder(db: Session, **filters) -> models.FolderRecord | None:
@@ -78,7 +78,7 @@ def return_or_create_root_folder(db: Session,
         name=models.ROOT_PATH,
         full_path=models.ROOT_PATH
     )
-    return _update_record(db, folder_record)
+    return update_record(db, folder_record)
 
 
 def create_child_folder(db: Session,
@@ -90,7 +90,7 @@ def create_child_folder(db: Session,
         name=name,
         full_path=posixpath.join(parent_folder.full_path, name)
     )
-    return _update_record(db, child_folder)
+    return update_record(db, child_folder)
 
 
 def create_folders_recursively(db: Session,
@@ -114,7 +114,7 @@ def rename_folder(db: Session,
     parent_path, _ = split_head_and_tail(folder.full_path)
     folder.full_path = posixpath.join(parent_path, new_name)
     _update_child_full_paths(folder)
-    return _update_record(db, folder)
+    return update_record(db, folder)
 
 
 def move_folder(db: Session,
@@ -123,7 +123,7 @@ def move_folder(db: Session,
     folder.parent_folder = destination_folder
     folder.full_path = posixpath.join(destination_folder.full_path, folder.name)
     _update_child_full_paths(folder)
-    return _update_record(db, folder)
+    return update_record(db, folder)
 
 
 def list_folder(folder: models.FolderRecord) -> dict[str, list[str]]:
@@ -131,10 +131,6 @@ def list_folder(folder: models.FolderRecord) -> dict[str, list[str]]:
         "files": list(map(lambda file: file.filename, folder.files)),
         "folders": list(map(lambda folder: folder.name, folder.child_folders))
     }
-
-
-def update_file_record(db: Session, file_record: models.FileRecord) -> models.FileRecord:
-    return _update_record(db, file_record)
 
 
 def create_file_record(db: Session,
@@ -149,4 +145,4 @@ def create_file_record(db: Session,
         full_path=posixpath.join(folder.full_path, filename),
         size=size
     )
-    return _update_record(db, file_record)
+    return update_record(db, file_record)
