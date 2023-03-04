@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from .exceptions import exceptions, handlers
-from .routers import registration, folders
+from .routers import registration, folders, files
 
 app = FastAPI()
 
@@ -12,3 +12,4 @@ app.add_exception_handler(exceptions.AuthenticationRequired,
 
 app.include_router(registration.router)
 app.include_router(folders.router, prefix="/folders")
+app.include_router(files.router, prefix="/files")

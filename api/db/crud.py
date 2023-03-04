@@ -32,7 +32,7 @@ def _update_child_full_paths(folder: models.FolderRecord):
         _update_child_full_paths(child_folder)
 
 
-def update_record(db: Session, record: models.ModelType) -> models.ModelType:
+def update_record(db: Session, record: models.Record) -> models.Record:
     db.add(record)
     db.commit()
     db.refresh(record)

@@ -66,4 +66,4 @@ class StorageRecord(Base):
     files = relationship("FileRecord", back_populates="storage")
 
 
-ModelType = KeyRecord | FolderRecord | FileRecord | StorageRecord
+Record = KeyRecord | FolderRecord | FileRecord | StorageRecord
