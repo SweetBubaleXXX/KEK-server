@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from ..db import crud, models
 from ..dependencies import get_db, get_key_record, verify_token
+from ..exceptions import exceptions
 from ..schemas import CreateFolder, MoveItem, RenameItem
 from ..utils.path_utils import split_head_and_tail
 
@@ -21,11 +22,11 @@ def create_folder(
     else:
         existing_folder = crud.find_folder(db, owner=key_record, full_path=request.path)
         if existing_folder:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Folder already exists")
+            raise exceptions.AlreadyExists(detail="Folder already exists")
         parent_path, folder_name = split_head_and_tail(request.path)
         parent_folder = crud.find_folder(db, owner=key_record, full_path=parent_path)
         if parent_folder is None:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Parent folder doesn't exist")
+            raise exceptions.NotExists(detail="Parent folder doesn't exist")
         crud.create_child_folder(db, parent_folder, folder_name)
 
 
@@ -37,11 +38,10 @@ def rename_folder(
 ):
     folder_record = crud.find_folder(db, owner=key_record, full_path=request.path)
     if folder_record is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
+        raise exceptions.NotExists(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
     sibling_folders = crud.list_folder(folder_record.parent_folder)["folders"]
     if request.new_name in sibling_folders:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST,
-                            detail="Folder/file with this name already exists")
+        raise exceptions.AlreadyExists(detail="Folder/file with this name already exists")
     crud.rename_folder(db, folder_record, request.new_name)
 
 
@@ -55,7 +55,7 @@ def move_folder(
     destination_folder_record = crud.find_folder(db, owner=key_record,
                                                  full_path=request.destination)
     if not (folder_record and destination_folder_record):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
+        raise exceptions.NotExists(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
     crud.move_folder(db, folder_record, destination_folder_record)
 
 
@@ -67,7 +67,7 @@ def list_folder(
 ) -> dict[str, list[str]]:
     folder_record = crud.find_folder(db, owner=key_record, full_path=path)
     if folder_record is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
+        raise exceptions.NotExists(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
     return crud.list_folder(folder_record)
 
 
