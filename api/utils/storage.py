@@ -1,7 +1,7 @@
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from ..db import crud, models
+from ..db import models
 
 
 def get_storage(db: Session, file_size: int) -> models.StorageRecord | None:
@@ -13,7 +13,7 @@ def get_storage(db: Session, file_size: int) -> models.StorageRecord | None:
     return None
 
 
-def calculate_used_storage_by_user(db: Session, key_record: models.KeyRecord) -> int:
+def calculate_used_storage(db: Session, key_record: models.KeyRecord) -> int:
     return db.query(func.sum(models.FileRecord.size))\
         .join(models.FileRecord.folder)\
         .filter_by(owner=key_record).scalar()
