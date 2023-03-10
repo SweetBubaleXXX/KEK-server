@@ -28,7 +28,7 @@ jobs:
         python -m pip install -r requirements-test.txt
     - name: Lint with pycodestyle
       run: |
-        pycodestyle KEK
+        pycodestyle api/
     - name: Test with pytest
       run: |
         pytest
