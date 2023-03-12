@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, Header, status
-from fastapi.exceptions import HTTPException
 from sqlalchemy.orm import Session
 
 from ..db import crud, models
 from ..dependencies import get_db, get_key_record, verify_token
 from ..exceptions import exceptions
-from ..schemas import CreateFolder, MoveItem, RenameItem
+from ..schemas.base import MoveItem, RenameItem
+from ..schemas.folders import CreateFolder
 from ..utils.path_utils import split_head_and_tail
 
 router = APIRouter(tags=["folders"], dependencies=[Depends(verify_token)])

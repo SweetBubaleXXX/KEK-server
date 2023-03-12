@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, Header, status
-from fastapi.exceptions import HTTPException
+from fastapi import APIRouter, Depends, Header
 from KEK.exceptions import KeyLoadingError
 from KEK.hybrid import PublicKEK
 from sqlalchemy.orm import Session
@@ -7,7 +6,7 @@ from sqlalchemy.orm import Session
 from ..db import crud
 from ..dependencies import get_db, get_session, verify_token
 from ..exceptions import exceptions
-from ..schemas import PublicKeyInfo
+from ..schemas.authentication import PublicKeyInfo
 
 router = APIRouter(tags=["registration"])
 

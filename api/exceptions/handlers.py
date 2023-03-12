@@ -3,7 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
 from ..dependencies import get_session
-from ..schemas import DetailedTokenResponse
+from ..schemas.authentication import DetailedTokenResponse
 from . import exceptions
 
 

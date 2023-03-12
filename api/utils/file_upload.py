@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from ..db import models
 from ..dependencies import verify_token
+from ..schemas.storage_api import UploadRequestHeaders, UploadResponse
 from ..utils.storage import calculate_used_storage, get_storage
 
 router = APIRouter(tags=["files"], dependencies=[Depends(verify_token)])
@@ -18,11 +19,11 @@ async def redirect_file(stream: AsyncIterator[bytes],
                         storage: models.StorageRecord):
     url = urljoin(storage.url, file_record.id)
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=stream, headers={
-            "File-Size": file_record.size
-        }) as resp:
-            storage_space = await resp.json()
-            storage.used_space = storage_space["used"]
+        async with session.post(url, data=stream, headers=UploadRequestHeaders(
+            file_size=file_record.size
+        ).dict(by_alias=True)) as resp:
+            storage_space = UploadResponse.parse_obj(await resp.json())
+            storage.used_space = storage_space.used
 
 
 def get_available_storage(db: Session, key_record: models.KeyRecord, file_size: int):
