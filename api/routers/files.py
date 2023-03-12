@@ -7,7 +7,7 @@ from ..dependencies import get_db, get_key_record, verify_token
 from ..exceptions import exceptions
 from ..utils.path_utils import split_head_and_tail
 from ..utils.storage import get_available_storage
-from ..utils.storage_api import redirect_file
+from ..utils.storage_api import delete_file, redirect_file
 
 router = APIRouter(tags=["files"], dependencies=[Depends(verify_token)])
 
@@ -36,6 +36,8 @@ async def upload_file(
         file_record.storage = available_storage
         file_record.size = file_size
     await redirect_file(request.stream(), file_record, available_storage)
-    # delete file from old storage
+    if old_storage_id is not None:
+        old_storage = crud.get_storage(db, old_storage_id)
+        await delete_file(file_record, old_storage)
     crud.update_record(db, file_record)
     crud.update_record(db, available_storage)

@@ -5,19 +5,18 @@ from sqlalchemy.orm import Session
 from .. import config
 from ..utils.path_utils import split_head_and_tail, split_into_components
 from . import models
-from .engine import Base
 
 
-def _get_child_folder(parent_folder: models.FolderRecord,
-                      child_name: str) -> models.FolderRecord | None:
+def __get_child_folder(parent_folder: models.FolderRecord,
+                       child_name: str) -> models.FolderRecord | None:
     return next(filter(
         lambda child: child.name == child_name,
         parent_folder.child_folders
     ), None)
 
 
-def _get_child_file(parent_folder: models.FolderRecord,
-                    filename: str) -> models.FileRecord | None:
+def __get_child_file(parent_folder: models.FolderRecord,
+                     filename: str) -> models.FileRecord | None:
     return next(filter(
         lambda child_file: child_file.filename == filename,
         parent_folder.files
@@ -99,7 +98,7 @@ def create_folders_recursively(db: Session,
     current_folder = return_or_create_root_folder(db, key_record)
     path_components = split_into_components(folder_path)
     for folder_name in path_components:
-        existing_child = _get_child_folder(current_folder, folder_name)
+        existing_child = __get_child_folder(current_folder, folder_name)
         if existing_child:
             current_folder = existing_child
             continue
@@ -146,3 +145,7 @@ def create_file_record(db: Session,
         size=size
     )
     return update_record(db, file_record)
+
+
+def get_storage(db: Session, storage_id: str) -> models.StorageRecord | None:
+    return db.query(models.StorageRecord).filter_by(id=storage_id).first()

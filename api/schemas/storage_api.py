@@ -8,6 +8,6 @@ class UploadRequestHeaders(BaseModel):
         allow_population_by_field_name = True
 
 
-class UploadResponse(BaseModel):
+class StorageSpaceResponse(BaseModel):
     capacity: int
     used: int
