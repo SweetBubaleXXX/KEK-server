@@ -2,7 +2,7 @@ from unittest import IsolatedAsyncioTestCase, mock
 
 from api.db import models
 from api.schemas.storage_api import UploadResponse
-from api.utils.storage_crud import redirect_file
+from api.utils.storage_api import redirect_file
 
 
 class TestFileUploadUtils(IsolatedAsyncioTestCase):
