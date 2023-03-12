@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 from ..db import crud, models
 from ..dependencies import get_db, get_key_record, verify_token
 from ..exceptions import exceptions
-from ..utils.file_upload import get_available_storage, redirect_file
 from ..utils.path_utils import split_head_and_tail
+from ..utils.storage import get_available_storage
+from ..utils.storage_api import redirect_file
 
 router = APIRouter(tags=["files"], dependencies=[Depends(verify_token)])
 

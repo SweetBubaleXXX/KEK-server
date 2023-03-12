@@ -1,7 +1,16 @@
+from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..db import models
+
+
+def get_available_storage(db: Session, key_record: models.KeyRecord, file_size: int):
+    user_available_space = key_record.storage_size_limit - calculate_used_storage(db, key_record)
+    available_storage = get_storage(db, file_size)
+    if file_size > user_available_space or available_storage is None:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+    return available_storage
 
 
 def get_storage(db: Session, file_size: int) -> models.StorageRecord | None:
