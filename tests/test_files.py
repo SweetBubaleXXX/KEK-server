@@ -1,4 +1,3 @@
-import asynctest
 from fastapi import status
 
 from api.db import models
