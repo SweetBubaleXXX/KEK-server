@@ -1,5 +1,6 @@
 import posixpath
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .. import config
@@ -149,3 +150,9 @@ def create_file_record(db: Session,
 
 def get_storage(db: Session, storage_id: str) -> models.StorageRecord | None:
     return db.query(models.StorageRecord).filter_by(id=storage_id).first()
+
+
+def calculate_used_storage(db: Session, key_record: models.KeyRecord) -> int:
+    return db.query(func.sum(models.FileRecord.size))\
+        .join(models.FileRecord.folder)\
+        .filter_by(owner=key_record).scalar()
