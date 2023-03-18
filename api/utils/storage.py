@@ -5,15 +5,15 @@ import aiohttp
 from sqlalchemy.orm import Session
 
 from ..db import crud, models
-from .. import exceptions
+from ..exceptions import client, core
 from ..schemas.storage_api import StorageSpaceResponse, UploadRequestHeaders
 from .path_utils import split_head_and_tail
 
 
 class BaseHandler:
-    def __init__(self, db: Session, client: models.KeyRecord, storage: models.StorageRecord):
+    def __init__(self, db: Session, key_record: models.KeyRecord, storage: models.StorageRecord):
         self._session = db
-        self._client = client
+        self._client = key_record
         self._storage = storage
 
     def get_url(self, file_record: models.FileRecord) -> str:
@@ -53,10 +53,11 @@ class UploadExistingFileRecordHandler(UploadFileHandler):
         old_storage_id = file_record.storage_id
         file_record.storage = self._storage
         file_record.size = file_size
+        self._session.add(file_record)
         await self.upload_stream(stream, file_record)
         old_storage = crud.get_storage(self._session, old_storage_id)
         if old_storage is None:
-            raise exceptions.core.StorageNotFound
+            raise core.StorageNotFound
         delete_handler = DeleteFileHandler(self._session, self._client, old_storage)
         await delete_handler.delete_from_storage(file_record)
 
@@ -66,39 +67,46 @@ class UploadNewFileRecordHandler(UploadFileHandler):
         folder_name, filename = split_head_and_tail(full_path)
         folder_record = crud.find_folder(self._session, owner=self._client, full_path=folder_name)
         if folder_record is None:
-            raise exceptions.client.NotExists(detail="Parent folder doesn't exist")
+            raise client.NotExists(detail="Parent folder doesn't exist")
         file_record = crud.create_file_record(self._session, folder_record, filename,
                                               self._storage, file_size)
+        self._session.add(file_record)
         await self.upload_stream(stream, file_record)
 
 
 class StorageClient:
-    def __init__(self, db: Session, client: models.KeyRecord, storage: models.StorageRecord):
+    def __init__(self, db: Session, key_record: models.KeyRecord, storage: models.StorageRecord):
         self._session = db
-        self._client = client
+        self._client = key_record
         self._storage = storage
 
     @property
-    def storage(self) -> models.StorageRecord:
-        return self._storage
+    def session(self) -> Session:
+        return self._session
 
     @property
     def client(self) -> models.KeyRecord:
         return self._client
 
+    @property
+    def storage(self) -> models.StorageRecord:
+        return self._storage
+
     async def upload_file(self, full_path: str, file_size: int, stream: AsyncIterator[bytes]):
         existing_record = crud.find_file(self._session, owner=self._client, full_path=full_path)
         if existing_record is None:
-            return await self.__create_handler(UploadNewFileRecordHandler)(
+            await self.__create_handler(UploadNewFileRecordHandler)(
                 full_path,
                 file_size,
                 stream
             )
-        return await self.__create_handler(UploadExistingFileRecordHandler)(
-            existing_record,
-            file_size,
-            stream
-        )
+        else:
+            await self.__create_handler(UploadExistingFileRecordHandler)(
+                existing_record,
+                file_size,
+                stream
+            )
+        self._session.add(self._storage)
 
     def __create_handler(self, handler_cls: Type[BaseHandler]):
         return handler_cls(

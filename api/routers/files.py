@@ -6,9 +6,7 @@ from ..db import crud, models
 from ..dependencies import (get_available_storage, get_db, get_key_record,
                             validate_available_space, verify_token)
 from ..exceptions import client
-from ..utils.path_utils import split_head_and_tail
 from ..utils.storage import StorageClient
-from ..utils.storage_api import delete_file, redirect_file
 
 router = APIRouter(tags=["files"], dependencies=[Depends(verify_token)])
 
@@ -19,25 +17,7 @@ async def upload_file(
     path: str = Header(),
     file_size: int = Header(),
     storage_client: StorageClient = Depends(get_available_storage),
-    key_record: models.KeyRecord = Depends(get_key_record),
     db: Session = Depends(get_db)
 ):
-    file_record = crud.find_file(db, owner=key_record, full_path=path)
-    old_storage_id = None
-    if file_record is None:
-        folder_name, filename = split_head_and_tail(path)
-        folder_record = crud.find_folder(db, owner=key_record, full_path=folder_name)
-        if folder_record is None:
-            raise client.NotExists(detail="Parent folder doesn't exist")
-        file_record = crud.create_file_record(db, folder_record, filename,
-                                              available_storage, file_size)
-    else:
-        old_storage_id = file_record.storage_id
-        file_record.storage = available_storage
-        file_record.size = file_size
-    await redirect_file(request.stream(), file_record, available_storage)
-    if old_storage_id is not None:
-        old_storage = crud.get_storage(db, old_storage_id)
-        await delete_file(file_record, old_storage)
-    crud.update_record(db, file_record)
-    crud.update_record(db, available_storage)
+    await storage_client.upload_file(path, file_size, request.stream())
+    crud.update_record(db, storage_client.storage)
