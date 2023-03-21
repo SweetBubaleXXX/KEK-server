@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, Header, status
 from sqlalchemy.orm import Session
 
 from ..db import crud, models
-from ..dependencies import get_db, get_key_record, verify_token
+from ..dependencies import (get_db, get_folder_record, get_key_record,
+                            verify_token)
 from ..exceptions import client
 from ..schemas.base import MoveItem, RenameItem
 from ..schemas.folders import CreateFolder
@@ -61,11 +62,8 @@ def move_folder(
 
 @router.get("/list")
 def list_folder(
-    path: str = Header(),
-    key_record: models.KeyRecord = Depends(get_key_record),
-    db: Session = Depends(get_db)
+    folder_record: models.FolderRecord | None = Depends(get_folder_record)
 ) -> dict[str, list[str]]:
-    folder_record = crud.find_folder(db, owner=key_record, full_path=path)
     if folder_record is None:
         raise client.NotExists(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
     return crud.list_folder(folder_record)

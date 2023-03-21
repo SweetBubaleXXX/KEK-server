@@ -1,6 +1,5 @@
-from pydantic import BaseModel
+from .base import Item
 
 
-class CreateFolder(BaseModel):
-    path: str
+class CreateFolder(Item):
     recursive: bool = False

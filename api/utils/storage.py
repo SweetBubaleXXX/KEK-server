@@ -35,7 +35,7 @@ class DeleteFileHandler(BaseHandler):
                 await self.parse_storage_space(res)
 
     async def __call__(self, file_record: models.FileRecord):
-        pass
+        await self.delete_from_storage(file_record)
 
 
 class UploadFileHandler(BaseHandler):
@@ -115,6 +115,10 @@ class StorageClient:
                 stream
             )
         self._session.add(self._storage)
+
+    async def delete_file(self, full_path):
+        file_record = crud.find_file(self._session, owner=self._client, full_path=full_path)
+        self.__create_handler(DeleteFileHandler)(file_record)
 
     def __create_handler(self, handler_cls: Type[BaseHandler]):
         return handler_cls(

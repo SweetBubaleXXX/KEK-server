@@ -11,6 +11,7 @@ from .db import crud, models
 from .db.dependency import create_get_db_dependency
 from .db.engine import SessionLocal
 from .exceptions import client, core
+from .utils.path_utils import normalize
 from .utils.sessions import SessionStorage, create_session_dependency
 from .utils.storage import StorageClient
 
@@ -28,6 +29,29 @@ def get_key_record(key_id: str = Header(), db: Session = Depends(get_db)) -> mod
 def get_key(key_record: models.KeyRecord = Depends(get_key_record)) -> PublicKEK:
     public_key = PublicKEK.load(key_record.public_key.encode("ascii"))
     return public_key
+
+
+def get_folder_record(path: str = Header(),
+                      key_record: models.KeyRecord = Depends(get_key_record),
+                      db: Session = Depends(get_db)) -> models.FolderRecord | None:
+    return crud.find_folder(db, owner=key_record, full_path=normalize(path))
+
+
+def get_file_record(path: str = Header(),
+                    key_record: models.KeyRecord = Depends(get_key_record),
+                    db: Session = Depends(get_db)) -> models.FileRecord | None:
+    return crud.find_file(db, owner=key_record, full_path=normalize(path))
+
+
+def get_available_storage(file_size: int = Header(),
+                          key_record: models.KeyRecord = Depends(get_key_record),
+                          db: Session = Depends(get_db)) -> StorageClient:
+    storages = db.query(models.StorageRecord).order_by(models.StorageRecord.priority).all()
+    for storage in storages:
+        available_space = storage.capacity - storage.used_space
+        if file_size <= available_space:
+            return StorageClient(storage, key_record, db)
+    raise core.NoAvailableStorage
 
 
 def verify_token(signed_token: str | None = Header(default=None),
@@ -51,14 +75,3 @@ def validate_available_space(file_size: int = Header(),
     available_space = key_record.storage_size_limit - crud.calculate_used_storage(db, key_record)
     if file_size > available_space:
         raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
-
-
-def get_available_storage(file_size: int = Header(),
-                          key_record: models.KeyRecord = Depends(get_key_record),
-                          db: Session = Depends(get_db)) -> StorageClient:
-    storages = db.query(models.StorageRecord).order_by(models.StorageRecord.priority).all()
-    for storage in storages:
-        available_space = storage.capacity - storage.used_space
-        if file_size <= available_space:
-            return StorageClient(storage, key_record, db)
-    raise core.NoAvailableStorage
