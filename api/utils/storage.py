@@ -2,6 +2,7 @@ from typing import AsyncIterator, Type
 from urllib.parse import urljoin
 
 import aiohttp
+from aiohttp.client import ClientResponse
 from sqlalchemy.orm import Session
 
 from ..db import crud, models
@@ -19,6 +20,10 @@ class BaseHandler:
     def get_url(self, file_record: models.FileRecord) -> str:
         return urljoin(self._storage.url, file_record.id)
 
+    async def parse_storage_space(self, response: ClientResponse):
+        storage_info = StorageSpaceResponse.parse_obj(await response.json())
+        self._storage.used_space = storage_info.used
+
 
 class DeleteFileHandler(BaseHandler):
     async def delete_from_storage(self, file_record: models.FileRecord):
@@ -26,9 +31,8 @@ class DeleteFileHandler(BaseHandler):
         async with aiohttp.ClientSession() as session:
             async with session.delete(url) as res:
                 if not res.ok:
-                    raise Exception
-                storage_space = StorageSpaceResponse.parse_obj(await res.json())
-                self._storage.used_space = storage_space.used
+                    raise core.StorageResponseError(res)
+                await self.parse_storage_space(res)
 
     async def __call__(self, file_record: models.FileRecord):
         pass
@@ -42,19 +46,11 @@ class UploadFileHandler(BaseHandler):
                 file_size=file_record.size
             ).dict(by_alias=True)) as res:
                 if not res.ok:
-                    raise Exception
-                storage_space = StorageSpaceResponse.parse_obj(await res.json())
-                self._storage.used_space = storage_space.used
+                    raise core.StorageResponseError(res)
+                await self.parse_storage_space(res)
 
 
 class UploadExistingFileRecordHandler(UploadFileHandler):
-    async def __delete_from_old_storage(self, file_record: models.FileRecord, old_storage_id: str):
-        old_storage = crud.get_storage(self._session, old_storage_id)
-        if old_storage is None:
-            raise core.StorageNotFound
-        delete_handler = DeleteFileHandler(self._session, self._client, old_storage)
-        await delete_handler.delete_from_storage(file_record)
-
     async def __call__(self, file_record: models.FileRecord,
                        file_size: int, stream: AsyncIterator[bytes]):
         old_storage_id = file_record.storage_id
@@ -64,6 +60,14 @@ class UploadExistingFileRecordHandler(UploadFileHandler):
         await self.upload_stream(stream, file_record)
         if old_storage_id != self._storage.id:
             await self.__delete_from_old_storage(file_record, old_storage_id)
+
+    async def __delete_from_old_storage(self, file_record: models.FileRecord, old_storage_id: str):
+        old_storage = crud.get_storage(self._session, old_storage_id)
+        if old_storage is None:
+            raise core.StorageNotFound
+        delete_handler = DeleteFileHandler(self._session, self._client, old_storage)
+        await delete_handler.delete_from_storage(file_record)
+        self._session.add(old_storage)
 
 
 class UploadNewFileRecordHandler(UploadFileHandler):
