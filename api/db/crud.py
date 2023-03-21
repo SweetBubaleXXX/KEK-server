@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from .. import config
 from ..utils.path_utils import split_head_and_tail, split_into_components
+from ..schemas.folders import FolderContent
 from . import models
 
 
@@ -126,11 +127,11 @@ def move_folder(db: Session,
     return update_record(db, folder)
 
 
-def list_folder(folder: models.FolderRecord) -> dict[str, list[str]]:
-    return {
-        "files": list(map(lambda file: file.filename, folder.files)),
-        "folders": list(map(lambda folder: folder.name, folder.child_folders))
-    }
+def list_folder(folder: models.FolderRecord) -> FolderContent:
+    return FolderContent(
+        files=map(lambda file: file.filename, folder.files),
+        folders=map(lambda folder: folder.name, folder.child_folders)
+    )
 
 
 def create_file_record(db: Session,

@@ -140,4 +140,4 @@ class TestCrud(TestWithKeyRecord):
         self.session.commit()
         self.session.refresh(parent_folder)
         folder_content = crud.list_folder(parent_folder)
-        self.assertListEqual(folder_content["folders"], child_names)
+        self.assertListEqual(folder_content.folders, child_names)
