@@ -48,6 +48,13 @@ class UploadFileHandler(BaseHandler):
 
 
 class UploadExistingFileRecordHandler(UploadFileHandler):
+    async def __delete_from_old_storage(self, file_record: models.FileRecord, old_storage_id: str):
+        old_storage = crud.get_storage(self._session, old_storage_id)
+        if old_storage is None:
+            raise core.StorageNotFound
+        delete_handler = DeleteFileHandler(self._session, self._client, old_storage)
+        await delete_handler.delete_from_storage(file_record)
+
     async def __call__(self, file_record: models.FileRecord,
                        file_size: int, stream: AsyncIterator[bytes]):
         old_storage_id = file_record.storage_id
@@ -55,11 +62,8 @@ class UploadExistingFileRecordHandler(UploadFileHandler):
         file_record.size = file_size
         self._session.add(file_record)
         await self.upload_stream(stream, file_record)
-        old_storage = crud.get_storage(self._session, old_storage_id)
-        if old_storage is None:
-            raise core.StorageNotFound
-        delete_handler = DeleteFileHandler(self._session, self._client, old_storage)
-        await delete_handler.delete_from_storage(file_record)
+        if old_storage_id != self._storage.id:
+            await self.__delete_from_old_storage(file_record, old_storage_id)
 
 
 class UploadNewFileRecordHandler(UploadFileHandler):
@@ -111,6 +115,6 @@ class StorageClient:
     def __create_handler(self, handler_cls: Type[BaseHandler]):
         return handler_cls(
             self._session,
-            self._storage,
-            self._client
+            self._client,
+            self._storage
         )
