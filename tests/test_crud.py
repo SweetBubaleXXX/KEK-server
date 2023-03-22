@@ -141,3 +141,17 @@ class TestCrud(TestWithKeyRecord):
         self.session.refresh(parent_folder)
         folder_content = crud.list_folder(parent_folder)
         self.assertListEqual(folder_content.folders, child_names)
+
+    def test_calculate_used_storage(self):
+        folder_record = models.FolderRecord(owner=self.key_record)
+        size_range = range(1, 10)
+        for size in size_range:
+            self.session.add(models.FileRecord(
+                folder=folder_record,
+                size=size
+            ))
+        self.session.commit()
+        self.session.refresh(folder_record)
+        calculated_size = crud.calculate_used_storage(self.session, self.key_record)
+        expected_size = sum(size_range)
+        self.assertEqual(calculated_size, expected_size)

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, validator
 
-from .base import Item, FileInfo
+from .base import FileInfo, Item
 
 
 class CreateFolder(Item):
