@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, root_validator, validator
 
 from ..utils.path_utils import normalize
@@ -28,3 +30,9 @@ class MoveItem(BaseModel):
         if destination.startswith(path):
             raise ValueError("Destination should be a higher level directory")
         return values
+
+
+class FileInfo(BaseModel):
+    filename: str
+    last_modified: datetime
+    size: int
