@@ -10,8 +10,8 @@ class CreateFolder(Item):
 
 
 class FolderContent(BaseModel):
-    files: Iterable[FileInfo]
-    folders: Iterable[str]
+    files: list[FileInfo] | Iterable[FileInfo]
+    folders: list[str] | Iterable[str]
 
     @validator("files", "folders", pre=True)
     def validate_iterable(cls, v):

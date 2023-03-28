@@ -13,7 +13,7 @@ class UploadRequestHeaders(StorageRequestHeaders):
     file_size: int = 0
 
     class Config:
-        fields= {"file_size": "File-Size"}
+        fields = {"file_size": "File-Size"}
         allow_population_by_field_name = True
 
 
