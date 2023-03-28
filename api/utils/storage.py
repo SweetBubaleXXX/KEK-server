@@ -31,7 +31,7 @@ class DeleteFileHandler(BaseHandler):
         async with aiohttp.ClientSession() as session:
             async with session.delete(url, headers=storage_api.StorageRequestHeaders(
                 authorization=self._storage.token
-            )) as res:
+            ).dict(by_alias=True)) as res:
                 if not res.ok:
                     raise core.StorageResponseError(res)
                 await self.parse_storage_space(res)
@@ -45,8 +45,8 @@ class UploadFileHandler(BaseHandler):
         url = self.get_url(file_record.id)
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=stream, headers=storage_api.UploadRequestHeaders(
-                file_size=file_record.size,
-                authorization=self._storage.token
+                authorization=self._storage.token,
+                file_size=file_record.size
             ).dict(by_alias=True)) as res:
                 if not res.ok:
                     raise core.StorageResponseError(res)

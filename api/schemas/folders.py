@@ -1,3 +1,5 @@
+from typing import Iterable
+
 from pydantic import BaseModel, validator
 
 from .base import FileInfo, Item
@@ -8,8 +10,8 @@ class CreateFolder(Item):
 
 
 class FolderContent(BaseModel):
-    files: list[FileInfo]
-    folders: list[str]
+    files: Iterable[FileInfo]
+    folders: Iterable[str]
 
     @validator("files", "folders", pre=True)
     def validate_iterable(cls, v):
