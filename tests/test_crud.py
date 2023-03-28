@@ -142,6 +142,22 @@ class TestCrud(TestWithKeyRecord):
         folder_content = crud.list_folder(parent_folder)
         self.assertListEqual(folder_content.folders, child_names)
 
+    def test_create_file_record(self):
+        folder_record = models.FolderRecord(
+            owner=self.key_record,
+            name="folder",
+            full_path="folder"
+        )
+        storage_record = models.StorageRecord(id="id")
+        file_record = crud.create_file_record(
+            self.session,
+            folder_record,
+            "filename",
+            storage_record,
+            0
+        )
+        self.assertEqual(file_record.full_path, "folder/filename")
+
     def test_calculate_used_storage(self):
         folder_record = models.FolderRecord(owner=self.key_record)
         size_range = range(1, 10)

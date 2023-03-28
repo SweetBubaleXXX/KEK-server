@@ -50,7 +50,7 @@ def get_available_storage(file_size: int = Header(),
     for storage in storages:
         available_space = storage.capacity - storage.used_space
         if file_size <= available_space:
-            return StorageClient(storage, key_record, db)
+            return StorageClient(db, key_record, storage)
     raise core.NoAvailableStorage
 
 

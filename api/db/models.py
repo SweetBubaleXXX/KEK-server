@@ -4,8 +4,8 @@ from uuid import uuid4
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
-from .engine import Base
 from ..utils.path_utils import ROOT_PATH
+from .engine import Base
 
 
 class KeyRecord(Base):

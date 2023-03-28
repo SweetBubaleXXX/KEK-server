@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from .exceptions import client, handlers
-from .routers import registration, folders, files
+from .routers import files, folders, registration
 
 app = FastAPI()
 

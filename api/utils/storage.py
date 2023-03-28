@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..db import crud, models
 from ..exceptions import client, core
-from ..schemas.storage_api import StorageSpaceResponse, UploadRequestHeaders
+from ..schemas import storage_api
 from .path_utils import split_head_and_tail
 
 
@@ -21,7 +21,7 @@ class BaseHandler:
         return urljoin(self._storage.url, file_record.id)
 
     async def parse_storage_space(self, response: ClientResponse):
-        storage_info = StorageSpaceResponse.parse_obj(await response.json())
+        storage_info = storage_api.StorageSpaceResponse.parse_obj(await response.json())
         self._storage.used_space = storage_info.used
 
 
@@ -29,7 +29,9 @@ class DeleteFileHandler(BaseHandler):
     async def delete_from_storage(self, file_record: models.FileRecord):
         url = self.get_url(file_record.id)
         async with aiohttp.ClientSession() as session:
-            async with session.delete(url) as res:
+            async with session.delete(url, headers=storage_api.StorageRequestHeaders(
+                authorization=self._storage.token
+            )) as res:
                 if not res.ok:
                     raise core.StorageResponseError(res)
                 await self.parse_storage_space(res)
@@ -42,8 +44,9 @@ class UploadFileHandler(BaseHandler):
     async def upload_stream(self, stream: AsyncIterator[bytes], file_record: models.FileRecord):
         url = self.get_url(file_record.id)
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=stream, headers=UploadRequestHeaders(
-                file_size=file_record.size
+            async with session.post(url, data=stream, headers=storage_api.UploadRequestHeaders(
+                file_size=file_record.size,
+                authorization=self._storage.token
             ).dict(by_alias=True)) as res:
                 if not res.ok:
                     raise core.StorageResponseError(res)

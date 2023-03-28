@@ -1,7 +1,15 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 
-class UploadRequestHeaders(BaseModel):
+class StorageRequestHeaders(BaseModel):
+    authorization: str
+
+    @validator("authorization", pre=True)
+    def parse_authorization(cls, v):
+        return f"Bearer {v}"
+
+
+class UploadRequestHeaders(StorageRequestHeaders):
     file_size: int = Field(0, alias="File-Size")
 
     class Config:
