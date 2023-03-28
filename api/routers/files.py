@@ -19,5 +19,6 @@ async def upload_file(
     storage_client: StorageClient = Depends(get_available_storage),
     db: Session = Depends(get_db)
 ):
-    await storage_client.upload_file(path, file_size, request.stream())
+    file_record = await storage_client.upload_file(path, file_size, request.stream())
     crud.update_record(db, storage_client.storage)
+    crud.update_record(db, file_record)

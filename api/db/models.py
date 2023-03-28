@@ -46,7 +46,7 @@ class FileRecord(Base):
     storage_id = Column(String, ForeignKey("storages.id"))
     filename = Column(String)
     full_path = Column(String)
-    last_modified = Column(DateTime, onupdate=datetime.utcnow)
+    last_modified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     size = Column(Integer)
 
     folder = relationship("FolderRecord", back_populates="files", uselist=False)

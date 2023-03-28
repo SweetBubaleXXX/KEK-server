@@ -1,4 +1,4 @@
-from typing import AsyncIterator, Type
+from typing import AsyncIterator, Type, Coroutine, Any
 from urllib.parse import urljoin
 
 import aiohttp
@@ -27,7 +27,7 @@ class BaseHandler:
 
 class DeleteFileHandler(BaseHandler):
     async def delete_from_storage(self, file_record: models.FileRecord):
-        url = self.get_url(file_record.id)
+        url = self.get_url(file_record)
         async with aiohttp.ClientSession() as session:
             async with session.delete(url, headers=storage_api.StorageRequestHeaders(
                 authorization=self._storage.token
@@ -42,7 +42,7 @@ class DeleteFileHandler(BaseHandler):
 
 class UploadFileHandler(BaseHandler):
     async def upload_stream(self, stream: AsyncIterator[bytes], file_record: models.FileRecord):
-        url = self.get_url(file_record.id)
+        url = self.get_url(file_record)
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=stream, headers=storage_api.UploadRequestHeaders(
                 authorization=self._storage.token,
@@ -54,8 +54,10 @@ class UploadFileHandler(BaseHandler):
 
 
 class UploadExistingFileRecordHandler(UploadFileHandler):
-    async def __call__(self, file_record: models.FileRecord,
-                       file_size: int, stream: AsyncIterator[bytes]):
+    async def __call__(self,
+                       file_record: models.FileRecord,
+                       file_size: int,
+                       stream: AsyncIterator[bytes]) -> Coroutine[Any, Any, models.FileRecord]:
         old_storage_id = file_record.storage_id
         file_record.storage = self._storage
         file_record.size = file_size
@@ -63,6 +65,7 @@ class UploadExistingFileRecordHandler(UploadFileHandler):
         await self.upload_stream(stream, file_record)
         if old_storage_id != self._storage.id:
             await self.__delete_from_old_storage(file_record, old_storage_id)
+        return file_record
 
     async def __delete_from_old_storage(self, file_record: models.FileRecord, old_storage_id: str):
         old_storage = crud.get_storage(self._session, old_storage_id)
@@ -74,7 +77,10 @@ class UploadExistingFileRecordHandler(UploadFileHandler):
 
 
 class UploadNewFileRecordHandler(UploadFileHandler):
-    async def __call__(self, full_path: str, file_size: int, stream: AsyncIterator[bytes]):
+    async def __call__(self,
+                       full_path: str,
+                       file_size: int,
+                       stream: AsyncIterator[bytes]) -> Coroutine[Any, Any, models.FileRecord]:
         folder_name, filename = split_head_and_tail(full_path)
         folder_record = crud.find_folder(self._session, owner=self._client, full_path=folder_name)
         if folder_record is None:
@@ -83,6 +89,7 @@ class UploadNewFileRecordHandler(UploadFileHandler):
                                               self._storage, file_size)
         self._session.add(file_record)
         await self.upload_stream(stream, file_record)
+        return file_record
 
 
 class StorageClient:
@@ -103,24 +110,36 @@ class StorageClient:
     def storage(self) -> models.StorageRecord:
         return self._storage
 
-    async def upload_file(self, full_path: str, file_size: int, stream: AsyncIterator[bytes]):
-        existing_record = crud.find_file(self._session, owner=self._client, full_path=full_path)
-        if existing_record is None:
-            await self.__create_handler(UploadNewFileRecordHandler)(
+    async def upload_file(self,
+                          full_path: str,
+                          file_size: int,
+                          stream: AsyncIterator[bytes]) -> Coroutine[Any, Any, models.FileRecord]:
+        file_record = self._session.query(models.FileRecord).filter_by(
+            full_path=full_path
+        ).join(models.FileRecord.folder).filter_by(
+            owner=self._client,
+        ).first()
+        if file_record is None:
+            file_record = await self.__create_handler(UploadNewFileRecordHandler)(
                 full_path,
                 file_size,
                 stream
             )
         else:
-            await self.__create_handler(UploadExistingFileRecordHandler)(
-                existing_record,
+            file_record = await self.__create_handler(UploadExistingFileRecordHandler)(
+                file_record,
                 file_size,
                 stream
             )
         self._session.add(self._storage)
+        return file_record
 
     async def delete_file(self, full_path):
-        file_record = crud.find_file(self._session, owner=self._client, full_path=full_path)
+        file_record = self._session.query(models.FileRecord).filter_by(
+            full_path=full_path
+        ).join(models.FileRecord.folder).filter_by(
+            owner=self._client,
+        ).first()
         self.__create_handler(DeleteFileHandler)(file_record)
 
     def __create_handler(self, handler_cls: Type[BaseHandler]):
