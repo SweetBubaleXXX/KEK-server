@@ -1,4 +1,4 @@
-from typing import AsyncIterator, Type, Coroutine, Any
+from typing import AsyncIterator, Type
 from urllib.parse import urljoin
 
 import aiohttp
@@ -57,7 +57,7 @@ class UploadExistingFileRecordHandler(UploadFileHandler):
     async def __call__(self,
                        file_record: models.FileRecord,
                        file_size: int,
-                       stream: AsyncIterator[bytes]) -> Coroutine[Any, Any, models.FileRecord]:
+                       stream: AsyncIterator[bytes]):
         old_storage_id = file_record.storage_id
         file_record.storage = self._storage
         file_record.size = file_size
@@ -80,7 +80,7 @@ class UploadNewFileRecordHandler(UploadFileHandler):
     async def __call__(self,
                        full_path: str,
                        file_size: int,
-                       stream: AsyncIterator[bytes]) -> Coroutine[Any, Any, models.FileRecord]:
+                       stream: AsyncIterator[bytes]):
         folder_name, filename = split_head_and_tail(full_path)
         folder_record = crud.find_folder(self._session, owner=self._client, full_path=folder_name)
         if folder_record is None:
@@ -113,7 +113,7 @@ class StorageClient:
     async def upload_file(self,
                           full_path: str,
                           file_size: int,
-                          stream: AsyncIterator[bytes]) -> Coroutine[Any, Any, models.FileRecord]:
+                          stream: AsyncIterator[bytes]):
         file_record = self._session.query(models.FileRecord).filter_by(
             full_path=full_path
         ).join(models.FileRecord.folder).filter_by(

@@ -1,5 +1,3 @@
-from aiohttp import ClientSession
-
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, patch
 
