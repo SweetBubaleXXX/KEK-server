@@ -23,9 +23,10 @@ class TestWithDatabase(unittest.TestCase):
 
 
 class TestWithKeyRecord(TestWithDatabase):
+    key = PrivateKEK.generate()
+
     def setUp(self):
         super().setUp()
-        self.key = PrivateKEK.generate()
         self.key_record = self.__add_key_to_db()
 
     def __add_key_to_db(self) -> models.KeyRecord:
