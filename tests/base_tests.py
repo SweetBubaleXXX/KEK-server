@@ -9,8 +9,7 @@ from KEK.hybrid import PrivateKEK
 
 from api.app import app
 from api.db import models
-from tests.setup_test_env import (setup_config, setup_database,
-                                  teardown_database)
+from tests.setup_test_env import setup_config, setup_database, teardown_database
 
 
 class TestWithDatabase(unittest.TestCase):

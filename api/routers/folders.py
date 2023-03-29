@@ -2,8 +2,7 @@ from fastapi import APIRouter, Depends, Header, status
 from sqlalchemy.orm import Session
 
 from ..db import crud, models
-from ..dependencies import (get_db, get_folder_record, get_key_record,
-                            verify_token)
+from ..dependencies import get_db, get_folder_record, get_key_record, verify_token
 from ..exceptions import client
 from ..schemas.base import MoveItem, RenameItem
 from ..schemas.folders import CreateFolder

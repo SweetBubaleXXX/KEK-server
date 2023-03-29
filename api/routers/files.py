@@ -2,10 +2,8 @@ from fastapi import APIRouter, Depends, Header
 from fastapi.requests import Request
 from sqlalchemy.orm import Session
 
-from ..db import crud, models
-from ..dependencies import (get_available_storage, get_db, get_key_record,
-                            validate_available_space, verify_token)
-from ..exceptions import client
+from ..db import crud
+from ..dependencies import get_available_storage, get_db, validate_available_space, verify_token
 from ..utils.storage import StorageClient
 
 router = APIRouter(tags=["files"], dependencies=[Depends(verify_token)])
