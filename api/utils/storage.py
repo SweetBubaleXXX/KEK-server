@@ -140,7 +140,10 @@ class StorageClient:
         ).join(models.FileRecord.folder).filter_by(
             owner=self._client,
         ).first()
+        if file_record is None:
+            raise client.NotExists(detail="File not found")
         self.__create_handler(DeleteFileHandler)(file_record)
+        self._session.delete(file_record)
 
     def __create_handler(self, handler_cls: Type[BaseHandler]):
         return handler_cls(

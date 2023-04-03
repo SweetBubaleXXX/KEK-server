@@ -18,5 +18,14 @@ async def upload_file(
     db: Session = Depends(get_db)
 ):
     file_record = await storage_client.upload_file(path, file_size, request.stream())
-    crud.update_record(db, storage_client.storage)
     crud.update_record(db, file_record)
+
+
+@router.delete("/delete")
+async def delete_file(
+    path: str = Header(),
+    storage_client: StorageClient = Depends(get_available_storage),
+    db: Session = Depends(get_db)
+):
+    await storage_client.delete_file(path)
+    db.commit()
