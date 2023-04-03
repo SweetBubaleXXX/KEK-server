@@ -21,6 +21,8 @@ class BaseHandler:
         return urljoin(self._storage.url, file_record.id)
 
     async def parse_storage_space(self, response: ClientResponse):
+        if not response.ok:
+            raise core.StorageResponseError(response)
         storage_info = storage_api.StorageSpaceResponse.parse_obj(await response.json())
         self._storage.used_space = storage_info.used
 
@@ -32,8 +34,6 @@ class DeleteFileHandler(BaseHandler):
             async with session.delete(url, headers=storage_api.StorageRequestHeaders(
                 authorization=self._storage.token
             ).dict(by_alias=True)) as res:
-                if not res.ok:
-                    raise core.StorageResponseError(res)
                 await self.parse_storage_space(res)
 
     async def __call__(self, file_record: models.FileRecord):
@@ -48,8 +48,6 @@ class UploadFileHandler(BaseHandler):
                 authorization=self._storage.token,
                 file_size=file_record.size
             ).dict(by_alias=True)) as res:
-                if not res.ok:
-                    raise core.StorageResponseError(res)
                 await self.parse_storage_space(res)
 
 
