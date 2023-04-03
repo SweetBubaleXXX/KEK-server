@@ -1,3 +1,6 @@
+import pytest
+from pydantic import BaseModel
+
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, patch
 
@@ -7,10 +10,8 @@ from api.utils.storage import StorageClient
 from tests.base_tests import TestWithRegisteredKey
 
 
-def _stream_generator():
-    yield bytes()
-
-
+@pytest.mark.usefixtures("stream_generator")
+@pytest.mark.usefixtures("storage_record")
 class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
     @patch("aiohttp.ClientSession.post")
     async def test_upload_existing_file(self, request_mock: AsyncMock):
@@ -18,15 +19,7 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
             used=10,
             capacity=10000000
         )
-        request_mock.return_value.__aenter__.return_value.ok = True
-        request_mock.return_value.__aenter__.return_value.json = AsyncMock(
-            return_value=storage_response
-        )
-        storage_record = models.StorageRecord(
-            id="storage_id",
-            url="https://storage",
-            token="token"
-        )
+        self.__set_request_mock_value(request_mock, storage_response)
         folder_record = models.FolderRecord(
             owner=self.key_record,
             name="folder",
@@ -34,7 +27,7 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
         )
         existing_file_record = models.FileRecord(
             folder=folder_record,
-            storage=storage_record,
+            storage=self.storage_record,
             filename="filename",
             full_path="folder/filename",
             size=0
@@ -42,24 +35,24 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
         crud.update_record(self.session, existing_file_record)
         prev_modified = existing_file_record.last_modified
 
-        storage_client = StorageClient(self.session, self.key_record, storage_record)
+        storage_client = StorageClient(self.session, self.key_record, self.storage_record)
         new_file_size = 200
         file_record = await storage_client.upload_file(
             "folder/filename",
             new_file_size,
-            _stream_generator
+            self.stream_generator
         )
-        crud.update_record(self.session, storage_record)
+        crud.update_record(self.session, self.storage_record)
         crud.update_record(self.session, file_record)
 
-        self.assertEqual(storage_record.used_space, storage_response.used)
+        self.assertEqual(self.storage_record.used_space, storage_response.used)
         self.assertEqual(file_record.size, new_file_size)
         self.assertGreater(file_record.last_modified, prev_modified)
         request_mock.assert_called_once_with(
-            f"{storage_record.url}/{file_record.id}",
-            data=_stream_generator,
+            f"{self.storage_record.url}/{file_record.id}",
+            data=self.stream_generator,
             headers=UploadRequestHeaders(
-                authorization=storage_record.token,
+                authorization=self.storage_record.token,
                 file_size=new_file_size
             ).dict(by_alias=True)
         )
@@ -70,15 +63,7 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
             used=10,
             capacity=10000000
         )
-        request_mock.return_value.__aenter__.return_value.ok = True
-        request_mock.return_value.__aenter__.return_value.json = AsyncMock(
-            return_value=storage_response
-        )
-        storage_record = models.StorageRecord(
-            id="storage_id",
-            url="https://storage",
-            token="token"
-        )
+        self.__set_request_mock_value(request_mock, storage_response)
         folder_record = models.FolderRecord(
             owner=self.key_record,
             name="folder",
@@ -86,24 +71,30 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
         )
         crud.update_record(self.session, folder_record)
 
-        storage_client = StorageClient(self.session, self.key_record, storage_record)
+        storage_client = StorageClient(self.session, self.key_record, self.storage_record)
         file_size = 200
         file_record = await storage_client.upload_file(
             "folder/filename",
             file_size,
-            _stream_generator
+            self.stream_generator
         )
-        crud.update_record(self.session, storage_record)
+        crud.update_record(self.session, self.storage_record)
         crud.update_record(self.session, file_record)
 
-        self.assertEqual(storage_record.used_space, storage_response.used)
-        self.assertEqual(file_record.storage_id, storage_record.id)
+        self.assertEqual(self.storage_record.used_space, storage_response.used)
+        self.assertEqual(file_record.storage_id, self.storage_record.id)
         self.assertEqual(file_record.folder.id, folder_record.id)
         request_mock.assert_called_once_with(
-            f"{storage_record.url}/{file_record.id}",
-            data=_stream_generator,
+            f"{self.storage_record.url}/{file_record.id}",
+            data=self.stream_generator,
             headers=UploadRequestHeaders(
-                authorization=storage_record.token,
+                authorization=self.storage_record.token,
                 file_size=file_size
             ).dict(by_alias=True)
+        )
+
+    def __set_request_mock_value(self, mock: AsyncMock, response: BaseModel):
+        mock.return_value.__aenter__.return_value.ok = True
+        mock.return_value.__aenter__.return_value.json = AsyncMock(
+            return_value=response.dict()
         )
