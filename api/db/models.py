@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from ..utils.path_utils import ROOT_PATH
 from .engine import Base
@@ -52,6 +53,10 @@ class FileRecord(Base):
     folder = relationship("FolderRecord", back_populates="files", uselist=False)
     storage = relationship("StorageRecord", back_populates="files", uselist=False)
 
+    @hybrid_property
+    def owner(self):
+        return self.folder.owner
+
 
 class StorageRecord(Base):
     __tablename__ = "storages"
@@ -64,6 +69,10 @@ class StorageRecord(Base):
     priority = Column(Integer, default=1)
 
     files = relationship("FileRecord", back_populates="storage")
+
+    @hybrid_property
+    def free(self):
+        return self.capacity - self.used_space
 
 
 Record = KeyRecord | FolderRecord | FileRecord | StorageRecord
