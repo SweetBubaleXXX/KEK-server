@@ -49,7 +49,7 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
         self.assertEqual(file_record.size, new_file_size)
         self.assertGreater(file_record.last_modified, prev_modified)
         request_mock.assert_called_once_with(
-            f"{self.storage_record.url}/{file_record.id}",
+            file_record.id,
             data=self.stream_generator,
             headers=UploadRequestHeaders(
                 authorization=self.storage_record.token,
@@ -85,7 +85,7 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
         self.assertEqual(file_record.storage_id, self.storage_record.id)
         self.assertEqual(file_record.folder.id, folder_record.id)
         request_mock.assert_called_once_with(
-            f"{self.storage_record.url}/{file_record.id}",
+            file_record.id,
             data=self.stream_generator,
             headers=UploadRequestHeaders(
                 authorization=self.storage_record.token,
