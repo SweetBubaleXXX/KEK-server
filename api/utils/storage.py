@@ -17,9 +17,6 @@ class BaseHandler:
         self._client = key_record
         self._storage = storage
 
-    def get_url(self, file_record: models.FileRecord) -> str:
-        return urljoin(self._storage.url, file_record.id)
-
     async def parse_storage_space(self, response: ClientResponse):
         if not response.ok:
             raise core.StorageResponseError(response)
@@ -27,11 +24,19 @@ class BaseHandler:
         self._storage.used_space = storage_info.used
 
 
+class DownloadFileHandler(BaseHandler):
+    async def __call__(self, file_record: models.FileRecord) -> aiohttp.StreamReader:
+        async with aiohttp.ClientSession(self._storage.url) as session:
+            async with session.get(file_record.id, headers=storage_api.StorageRequestHeaders(
+                authorization=self._storage.token
+            ).dict(by_alias=True)) as res:
+                return res.content
+
+
 class DeleteFileHandler(BaseHandler):
     async def delete_from_storage(self, file_record: models.FileRecord):
-        url = self.get_url(file_record)
-        async with aiohttp.ClientSession() as session:
-            async with session.delete(url, headers=storage_api.StorageRequestHeaders(
+        async with aiohttp.ClientSession(self._storage.url) as session:
+            async with session.delete(file_record.id, headers=storage_api.StorageRequestHeaders(
                 authorization=self._storage.token
             ).dict(by_alias=True)) as res:
                 await self.parse_storage_space(res)
@@ -40,18 +45,19 @@ class DeleteFileHandler(BaseHandler):
         await self.delete_from_storage(file_record)
 
 
-class UploadFileHandler(BaseHandler):
+class BaseUploadFileHandler(BaseHandler):
     async def upload_stream(self, stream: AsyncIterator[bytes], file_record: models.FileRecord):
-        url = self.get_url(file_record)
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=stream, headers=storage_api.UploadRequestHeaders(
-                authorization=self._storage.token,
-                file_size=file_record.size
-            ).dict(by_alias=True)) as res:
+        async with aiohttp.ClientSession(self._storage.url) as session:
+            async with session.post(file_record.id,
+                                    data=stream,
+                                    headers=storage_api.UploadRequestHeaders(
+                                        authorization=self._storage.token,
+                                        file_size=file_record.size
+                                    ).dict(by_alias=True)) as res:
                 await self.parse_storage_space(res)
 
 
-class UploadExistingFileRecordHandler(UploadFileHandler):
+class UploadExistingFileRecordHandler(BaseUploadFileHandler):
     async def __call__(self,
                        file_record: models.FileRecord,
                        file_size: int,
@@ -74,7 +80,7 @@ class UploadExistingFileRecordHandler(UploadFileHandler):
         self._session.add(old_storage)
 
 
-class UploadNewFileRecordHandler(UploadFileHandler):
+class UploadNewFileRecordHandler(BaseUploadFileHandler):
     async def __call__(self,
                        full_path: str,
                        file_size: int,
@@ -108,6 +114,9 @@ class StorageClient:
     def storage(self) -> models.StorageRecord:
         return self._storage
 
+    async def download_file(self, file_record: models.FileRecord) -> aiohttp.StreamReader:
+        return await self.__create_handler(DownloadFileHandler)(file_record)
+
     async def upload_file(self,
                           full_path: str,
                           file_size: int,
@@ -132,14 +141,7 @@ class StorageClient:
         self._session.add(self._storage)
         return file_record
 
-    async def delete_file(self, full_path):
-        file_record = self._session.query(models.FileRecord).filter_by(
-            full_path=full_path
-        ).join(models.FileRecord.folder).filter_by(
-            owner=self._client,
-        ).first()
-        if file_record is None:
-            raise client.NotExists(detail="File not found")
+    async def delete_file(self, file_record: models.FileRecord):
         self.__create_handler(DeleteFileHandler)(file_record)
         self._session.delete(file_record)
 

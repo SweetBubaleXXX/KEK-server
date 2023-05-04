@@ -43,6 +43,14 @@ def get_file_record(path: str = Header(),
     return crud.find_file(db, owner=key_record, full_path=normalize(path))
 
 
+def get_file_record_required(
+    file_record: models.FileRecord | None = Depends(get_file_record)
+) -> models.FileRecord:
+    if file_record is None:
+        raise client.NotExists(detail="File not found")
+    return file_record
+
+
 def get_available_storage(file_size: int = Header(),
                           key_record: models.KeyRecord = Depends(get_key_record),
                           db: Session = Depends(get_db)) -> StorageClient:
