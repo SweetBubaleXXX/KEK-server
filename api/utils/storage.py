@@ -110,6 +110,8 @@ class StorageClient:
             async with session.get(file_record.id, headers=storage_api.StorageRequestHeaders(
                 authorization=file_record.storage.token
             ).dict(by_alias=True)) as res:
+                if not res.ok:
+                    raise core.StorageResponseError(res)
                 return res.content
 
     async def upload_file(self,
@@ -137,7 +139,7 @@ class StorageClient:
         return file_record
 
     async def delete_file(self, file_record: models.FileRecord):
-        self.__create_handler(DeleteFileHandler)(file_record)
+        await self.__create_handler(DeleteFileHandler)(file_record)
         self._session.delete(file_record)
 
     def __create_handler(self, handler_cls: Type[BaseHandler]):

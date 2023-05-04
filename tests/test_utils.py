@@ -5,7 +5,8 @@ import pytest
 from pydantic import BaseModel
 
 from api.db import crud, models
-from api.schemas.storage_api import StorageSpaceResponse, UploadRequestHeaders
+from api.schemas.storage_api import (StorageRequestHeaders, StorageSpaceResponse,
+                                     UploadRequestHeaders)
 from api.utils.storage import StorageClient
 from tests.base_tests import TestWithRegisteredKey
 
@@ -90,6 +91,39 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
             headers=UploadRequestHeaders(
                 authorization=self.storage_record.token,
                 file_size=file_size
+            ).dict(by_alias=True)
+        )
+
+    @patch("aiohttp.ClientSession.delete")
+    async def test_delete_file(self, request_mock: AsyncMock):
+        storage_response = StorageSpaceResponse(
+            used=0,
+            capacity=10000000
+        )
+        self.__set_request_mock_value(request_mock, storage_response)
+        folder_record = models.FolderRecord(
+            owner=self.key_record,
+            name="folder",
+            full_path="folder"
+        )
+        file_record = models.FileRecord(
+            folder=folder_record,
+            storage=self.storage_record,
+            filename="filename",
+            full_path="folder/filename",
+            size=100
+        )
+        crud.update_record(self.session, file_record)
+
+        storage_client = StorageClient(self.session, self.key_record, self.storage_record)
+        await storage_client.delete_file(file_record)
+        crud.update_record(self.session, folder_record)
+
+        self.assertListEqual(folder_record.files, [])
+        request_mock.assert_called_once_with(
+            file_record.id,
+            headers=StorageRequestHeaders(
+                authorization=self.storage_record.token,
             ).dict(by_alias=True)
         )
 
