@@ -15,7 +15,7 @@ router = APIRouter(tags=["files"], dependencies=[Depends(verify_token)])
 async def download_file(
     file_record: models.FileRecord = Depends(get_file_record_required)
 ):
-    stream_reader = await storage_client.download_file(file_record)
+    stream_reader = await StorageClient.download_file(file_record)
     return StreamingResponse(stream_reader)
 
 
@@ -36,6 +36,6 @@ async def delete_file(
     file_record: models.FileRecord = Depends(get_file_record_required),
     db: Session = Depends(get_db)
 ):
-    storage_client = StorageClient(db, file_record.folder)
+    storage_client = StorageClient(db, file_record.owner, file_record.storage)
     await storage_client.delete_file(file_record)
     db.commit()

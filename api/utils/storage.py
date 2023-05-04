@@ -1,5 +1,4 @@
 from typing import AsyncIterator, Type
-from urllib.parse import urljoin
 
 import aiohttp
 from aiohttp.client import ClientResponse
@@ -22,15 +21,6 @@ class BaseHandler:
             raise core.StorageResponseError(response)
         storage_info = storage_api.StorageSpaceResponse.parse_obj(await response.json())
         self._storage.used_space = storage_info.used
-
-
-class DownloadFileHandler(BaseHandler):
-    async def __call__(self, file_record: models.FileRecord) -> aiohttp.StreamReader:
-        async with aiohttp.ClientSession(self._storage.url) as session:
-            async with session.get(file_record.id, headers=storage_api.StorageRequestHeaders(
-                authorization=self._storage.token
-            ).dict(by_alias=True)) as res:
-                return res.content
 
 
 class DeleteFileHandler(BaseHandler):
@@ -114,8 +104,13 @@ class StorageClient:
     def storage(self) -> models.StorageRecord:
         return self._storage
 
-    async def download_file(self, file_record: models.FileRecord) -> aiohttp.StreamReader:
-        return await self.__create_handler(DownloadFileHandler)(file_record)
+    @staticmethod
+    async def download_file(file_record: models.FileRecord) -> aiohttp.StreamReader:
+        async with aiohttp.ClientSession(file_record.storage.url) as session:
+            async with session.get(file_record.id, headers=storage_api.StorageRequestHeaders(
+                authorization=file_record.storage.token
+            ).dict(by_alias=True)) as res:
+                return res.content
 
     async def upload_file(self,
                           full_path: str,
