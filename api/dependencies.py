@@ -44,7 +44,7 @@ def get_file_record(path: str = Header(),
 
 
 def get_file_record_required(
-    file_record: models.FileRecord | None = Depends(get_file_record)
+    file_record: models.FileRecord | None = Depends(get_file_record),
 ) -> models.FileRecord:
     if file_record is None:
         raise client.NotExists(detail="File not found")

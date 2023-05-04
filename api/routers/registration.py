@@ -15,7 +15,7 @@ router = APIRouter(tags=["registration"])
 def register_key(
     request: PublicKeyInfo,
     signed_token: str | None = Header(default=None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     try:
         key = PublicKEK.load(request.public_key.encode("ascii"))

@@ -15,7 +15,7 @@ router = APIRouter(tags=["folders"], dependencies=[Depends(verify_token)])
 def create_folder(
     request: CreateFolder,
     key_record: models.KeyRecord = Depends(get_key_record),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     if request.recursive:
         crud.create_folders_recursively(db, key_record, request.path)
@@ -34,7 +34,7 @@ def create_folder(
 def rename_folder(
     request: RenameItem,
     key_record: models.KeyRecord = Depends(get_key_record),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     folder_record = crud.find_folder(db, owner=key_record, full_path=request.path)
     if folder_record is None:
@@ -49,7 +49,7 @@ def rename_folder(
 def move_folder(
     request: MoveItem,
     key_record: models.KeyRecord = Depends(get_key_record),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     folder_record = crud.find_folder(db, owner=key_record, full_path=request.path)
     destination_folder_record = crud.find_folder(db, owner=key_record,
@@ -61,7 +61,7 @@ def move_folder(
 
 @router.get("/list")
 def list_folder(
-    folder_record: models.FolderRecord | None = Depends(get_folder_record)
+    folder_record: models.FolderRecord | None = Depends(get_folder_record),
 ):
     if folder_record is None:
         raise client.NotExists(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
@@ -72,5 +72,5 @@ def list_folder(
 def delete_folder(
     path: str = Header(),
     key_record: models.KeyRecord = Depends(get_key_record),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ): ...
