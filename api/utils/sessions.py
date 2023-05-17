@@ -1,11 +1,6 @@
-from abc import ABCMeta, abstractmethod
 from uuid import UUID, uuid4
 
-
-class BaseSessionStorage(dict[str, UUID], metaclass=ABCMeta):
-    @abstractmethod
-    def add(self, key_id: str) -> UUID:
-        pass
+BaseSessionStorage = dict[str, UUID]
 
 
 class SessionStorage(BaseSessionStorage):

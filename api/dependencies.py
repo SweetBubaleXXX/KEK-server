@@ -12,7 +12,7 @@ from .db.dependency import create_get_db_dependency
 from .db.engine import SessionLocal
 from .exceptions import client, core
 from .utils.path_utils import normalize
-from .utils.sessions import SessionStorage, create_session_dependency
+from .utils.sessions import BaseSessionStorage, create_session_dependency
 from .utils.storage import StorageClient
 
 get_session = create_session_dependency()
@@ -63,7 +63,7 @@ def get_available_storage(file_size: int = Header(),
 
 def verify_token(signed_token: str | None = Header(default=None),
                  key: PublicKEK = Depends(get_key),
-                 session_storage: SessionStorage = Depends(get_session)):
+                 session_storage: BaseSessionStorage = Depends(get_session)):
     key_id = key.key_id.hex()
     if signed_token is None or key_id not in session_storage:
         raise client.AuthenticationRequired(key_id)
