@@ -70,7 +70,7 @@ def verify_token(signed_token: str | None = Header(default=None),
     token = session_storage.get(key_id)
     try:
         decoded_token = base64.b64decode(signed_token)
-        assert key.verify(decoded_token, str(token).encode("ascii"))
+        assert key.verify(decoded_token, str(token).encode())
     except (binascii.Error, VerificationError, AssertionError) as exc:
         raise client.AuthenticationFailed() from exc
     session_storage.pop(key_id)

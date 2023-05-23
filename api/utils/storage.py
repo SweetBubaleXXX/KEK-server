@@ -38,7 +38,7 @@ class DeleteFileHandler(BaseHandler):
 class BaseUploadFileHandler(BaseHandler):
     async def upload_stream(self, stream: AsyncIterator[bytes], file_record: models.FileRecord):
         async with aiohttp.ClientSession(self._storage.url) as session:
-            async with session.post(file_record.id,
+            async with session.post(f'/{file_record.id}',
                                     data=stream,
                                     headers=storage_api.UploadRequestHeaders(
                                         authorization=self._storage.token,

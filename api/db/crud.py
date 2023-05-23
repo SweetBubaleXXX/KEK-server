@@ -161,4 +161,4 @@ def get_storage(db: Session, storage_id: str) -> models.StorageRecord | None:
 def calculate_used_storage(db: Session, key_record: models.KeyRecord) -> int:
     return db.query(func.sum(models.FileRecord.size))\
         .join(models.FileRecord.folder)\
-        .filter_by(owner=key_record).scalar()
+        .filter_by(owner=key_record).scalar() or 0
