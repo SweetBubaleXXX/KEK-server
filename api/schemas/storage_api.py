@@ -10,7 +10,11 @@ class StorageRequestHeaders(BaseModel):
 
 
 class UploadRequestHeaders(StorageRequestHeaders):
-    file_size: int = 0
+    file_size: str = '0'
+
+    @validator('file_size')
+    def parse_file_size(cls, v):
+        return str(v)
 
     class Config:
         fields = {"file_size": "File-Size"}
