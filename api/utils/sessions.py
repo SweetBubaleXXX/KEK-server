@@ -1,9 +1,10 @@
+from collections.abc import MutableMapping
 from uuid import UUID, uuid4
 
-BaseSessionStorage = dict[str, UUID]
+BaseSessionStorage = MutableMapping[str, UUID]
 
 
-class SessionStorage(BaseSessionStorage):
+class SessionStorage(dict[str, UUID], BaseSessionStorage):
     def add(self, key_id: str) -> UUID:
         self[key_id] = uuid4()
         return self[key_id]
