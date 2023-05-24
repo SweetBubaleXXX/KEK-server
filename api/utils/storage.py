@@ -2,7 +2,9 @@ from typing import AsyncIterator, Type
 
 import aiohttp
 from aiohttp.client import ClientResponse
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from starlette.background import BackgroundTask
 
 from ..db import crud, models
 from ..exceptions import client, core
@@ -106,15 +108,17 @@ class StorageClient:
         return self._storage
 
     @staticmethod
-    async def download_file(session: aiohttp.ClientSession,
-                            file_record: models.FileRecord) -> aiohttp.StreamReader:
-        async with session.get(f'/file/{file_record.id}',
-                               headers=storage_api.StorageRequestHeaders(
-                                   authorization=file_record.storage.token
-                               ).dict(by_alias=True)) as res:
+    async def download_file(file_record: models.FileRecord) -> StreamingResponse:
+        async with aiohttp.ClientSession(file_record.storage.url) as session:
+            res = await session.get(
+                f'/file/{file_record.id}',
+                headers=storage_api.StorageRequestHeaders(
+                    authorization=file_record.storage.token
+                ).dict(by_alias=True),
+            )
             if not res.ok:
                 raise core.StorageResponseError(res)
-            return res.content
+            return StreamingResponse(res.content, background=BackgroundTask(res.close))
 
     async def upload_file(self,
                           full_path: str,

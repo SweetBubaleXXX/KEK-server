@@ -1,12 +1,6 @@
-import aiohttp
 from fastapi import APIRouter, Depends, Header
 from fastapi.requests import Request
-from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from starlette.background import BackgroundTask
-
-from api.exceptions import core
-from api.schemas import storage_api
 
 from ..db import crud, models
 from ..dependencies import (get_available_storage, get_db, get_file_record_required,
@@ -20,16 +14,7 @@ router = APIRouter(tags=["files"], dependencies=[Depends(verify_token)])
 async def download_file(
     file_record: models.FileRecord = Depends(get_file_record_required),
 ):
-    async with aiohttp.ClientSession(file_record.storage.url) as session:
-        res = await session.get(
-            f'/file/{file_record.id}',
-            headers=storage_api.StorageRequestHeaders(
-                authorization=file_record.storage.token
-            ).dict(by_alias=True),
-        )
-        if not res.ok:
-            raise core.StorageResponseError(res)
-        return StreamingResponse(res.content, background=BackgroundTask(res.close))
+    return await StorageClient.download_file(file_record)
 
 
 @router.post("/upload", dependencies=[Depends(validate_available_space)])
