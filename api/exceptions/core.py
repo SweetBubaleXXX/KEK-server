@@ -10,6 +10,6 @@ class StorageNotFound(Exception):
 
 
 class StorageResponseError(Exception):
-    def __init__(self, response: ClientResponse):
-        super().__init__(f"Status code <{response.status}>")
-        self.response = response
+    def __init__(self, res: ClientResponse):
+        super().__init__(f'{res.method} {res.url} <{res.status}> {res.reason}')
+        self.response = res
