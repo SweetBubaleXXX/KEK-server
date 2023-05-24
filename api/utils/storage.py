@@ -118,7 +118,11 @@ class StorageClient:
             )
             if not res.ok:
                 raise core.StorageResponseError(res)
-            return StreamingResponse(res.content, background=BackgroundTask(res.close))
+            try:
+                return StreamingResponse(res.content, background=BackgroundTask(res.close))
+            except aiohttp.ClientError:
+                res.close()
+                raise
 
     async def upload_file(self,
                           full_path: str,
