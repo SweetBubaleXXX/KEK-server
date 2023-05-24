@@ -1,7 +1,11 @@
+import aiohttp
 from fastapi import APIRouter, Depends, Header
 from fastapi.requests import Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.orm import Session
+
+from api.exceptions import core
+from api.schemas import storage_api
 
 from ..db import crud, models
 from ..dependencies import (get_available_storage, get_db, get_file_record_required,
@@ -15,8 +19,10 @@ router = APIRouter(tags=["files"], dependencies=[Depends(verify_token)])
 async def download_file(
     file_record: models.FileRecord = Depends(get_file_record_required),
 ):
-    stream_reader = await StorageClient.download_file(file_record)
-    return StreamingResponse(stream_reader)
+    async with aiohttp.ClientSession(file_record.storage.url) as session:
+        stream_reader = await StorageClient.download_file(session, file_record)
+        return StreamingResponse(stream_reader)
+
 
 
 @router.post("/upload", dependencies=[Depends(validate_available_space)])

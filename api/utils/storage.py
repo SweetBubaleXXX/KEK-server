@@ -106,14 +106,15 @@ class StorageClient:
         return self._storage
 
     @staticmethod
-    async def download_file(file_record: models.FileRecord) -> aiohttp.StreamReader:
-        async with aiohttp.ClientSession(file_record.storage.url) as session:
-            async with session.get(f'/file/{file_record.id}', headers=storage_api.StorageRequestHeaders(
-                authorization=file_record.storage.token
-            ).dict(by_alias=True)) as res:
-                if not res.ok:
-                    raise core.StorageResponseError(res)
-                return res.content
+    async def download_file(session: aiohttp.ClientSession,
+                            file_record: models.FileRecord) -> aiohttp.StreamReader:
+        async with session.get(f'/file/{file_record.id}',
+                               headers=storage_api.StorageRequestHeaders(
+                                   authorization=file_record.storage.token
+                               ).dict(by_alias=True)) as res:
+            if not res.ok:
+                raise core.StorageResponseError(res)
+            return res.content
 
     async def upload_file(self,
                           full_path: str,

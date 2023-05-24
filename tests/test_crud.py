@@ -17,6 +17,26 @@ class TestCrud(TestWithKeyRecord):
         key_record = self.session.query(models.KeyRecord).filter_by(id=key_id).first()
         self.assertEqual(key_record.storage_size_limit, self.settings.user_storage_size_limit)
 
+    def test_find_file(self):
+        folder_record = models.FolderRecord(
+            owner=self.key_record,
+            name="folder",
+            full_path="folder"
+        )
+        storage_record = models.StorageRecord(id="id")
+        file_record = crud.create_file_record(
+            self.session,
+            folder_record,
+            "filename",
+            storage_record,
+            0
+        )
+        self.session.add(file_record)
+        self.session.commit()
+        self.session.refresh(file_record)
+        found_file = crud.find_file(self.session, self.key_record, full_path='folder/filename')
+        self.assertEqual(found_file.id, file_record.id)
+
     def test_find_folder(self):
         folder_record = models.FolderRecord(
             owner=self.key_record,
