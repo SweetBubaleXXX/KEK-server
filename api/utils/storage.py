@@ -29,7 +29,7 @@ class BaseHandler:
 class DeleteFileHandler(BaseHandler):
     async def delete_from_storage(self, file_record: models.FileRecord):
         async with aiohttp.ClientSession(self._storage.url) as session:
-            async with session.delete(f'/file/{file_record.id}',
+            async with session.delete(f"/file/{file_record.id}",
                                       headers=storage_api.StorageRequestHeaders(
                                           authorization=self._storage.token
                                       ).dict(by_alias=True)) as res:
@@ -42,7 +42,7 @@ class DeleteFileHandler(BaseHandler):
 class BaseUploadFileHandler(BaseHandler):
     async def upload_stream(self, stream: AsyncIterator[bytes], file_record: models.FileRecord):
         async with aiohttp.ClientSession(self._storage.url) as session:
-            async with session.post(f'/file/{file_record.id}',
+            async with session.post(f"/file/{file_record.id}",
                                     data=stream,
                                     headers=storage_api.UploadRequestHeaders(
                                         authorization=self._storage.token,
@@ -112,7 +112,7 @@ class StorageClient:
     async def download_file(file_record: models.FileRecord) -> StreamingResponse:
         async with aiohttp.ClientSession(file_record.storage.url) as session:
             res = await session.get(
-                f'/file/{file_record.id}',
+                f"/file/{file_record.id}",
                 headers=storage_api.StorageRequestHeaders(
                     authorization=file_record.storage.token
                 ).dict(by_alias=True),
