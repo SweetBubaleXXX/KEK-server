@@ -14,4 +14,4 @@ def storage_record(request: pytest.FixtureRequest):
 
 @pytest.fixture
 def stream_generator(request: pytest.FixtureRequest):
-    request.cls.stream_generator = lambda: (yield bytes())
+    request.cls.stream_generator = lambda: (yield from b'data')

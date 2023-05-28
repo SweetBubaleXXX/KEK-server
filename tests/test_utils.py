@@ -2,7 +2,7 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from pydantic import BaseModel
+from fastapi import status
 
 from api.db import crud, models
 from api.schemas.storage_api import (StorageRequestHeaders, StorageSpaceResponse,
@@ -14,6 +14,27 @@ from tests.base_tests import TestWithRegisteredKey
 @pytest.mark.usefixtures("stream_generator")
 @pytest.mark.usefixtures("storage_record")
 class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
+    @patch("aiohttp.ClientSession")
+    async def test_download_file(self, request_mock: AsyncMock):
+        request_mock.return_value.__aenter__.return_value.get.return_value.status = 200
+        request_mock.return_value.__aenter__.return_value.get.return_value.content = self.stream_generator
+        folder_record = models.FolderRecord(
+            owner=self.key_record,
+            name="folder",
+            full_path="folder"
+        )
+        file_record = models.FileRecord(
+            folder=folder_record,
+            storage=self.storage_record,
+            filename="filename",
+            full_path="folder/filename",
+            size=100
+        )
+        crud.update_record(self.session, file_record)
+
+        response = await StorageClient.download_file(file_record)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
     @patch("aiohttp.ClientSession.post")
     async def test_upload_existing_file(self, request_mock: AsyncMock):
         storage_response = StorageSpaceResponse(
@@ -39,7 +60,7 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
         storage_client = StorageClient(self.session, self.key_record, self.storage_record)
         new_file_size = 200
         file_record = await storage_client.upload_file(
-            "folder/filename",
+            existing_file_record.full_path,
             new_file_size,
             self.stream_generator
         )
@@ -125,10 +146,4 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
             headers=StorageRequestHeaders(
                 authorization=self.storage_record.token,
             ).dict(by_alias=True)
-        )
-
-    def __set_request_mock_value(self, mock: AsyncMock, response: BaseModel):
-        mock.return_value.__aenter__.return_value.status = 200
-        mock.return_value.__aenter__.return_value.json = AsyncMock(
-            return_value=response.dict()
         )
