@@ -1,6 +1,6 @@
 import unittest
 from base64 import b64encode
-from typing import Type
+from typing import Literal, Type
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -10,6 +10,8 @@ from KEK.hybrid import PrivateKEK
 from api.app import app
 from api.db import models
 from tests.setup_test_env import setup_config, setup_database, teardown_database
+
+RequestMethod = Literal['get', 'post', 'delete']
 
 
 class TestWithDatabase(unittest.TestCase):
@@ -55,7 +57,7 @@ class TestWithRegisteredKey(TestWithKeyRecord, TestWithClient):
         self.session.commit()
         self.session.refresh(self.key_record)
 
-    def __request(self, method: str, *args, **kwargs) -> Response:
+    def __request(self, method: RequestMethod, *args, **kwargs) -> Response:
         match method.casefold():
             case "get":
                 return self.client.get(*args, **kwargs)
@@ -66,7 +68,8 @@ class TestWithRegisteredKey(TestWithKeyRecord, TestWithClient):
             case _:
                 raise ValueError("Method not recognized")
 
-    def authorized_request(self, method: str, *args, headers: dict | None = None, **kwargs):
+    def authorized_request(self, method: RequestMethod, *args,
+                           headers: dict | None = None, **kwargs):
         if headers is None:
             headers = {}
         headers = headers | {"key-id": self.key_record.id}

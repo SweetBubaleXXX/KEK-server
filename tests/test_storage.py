@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import status
+from pydantic import BaseModel
 
 from api.db import crud, models
 from api.schemas.storage_api import (StorageRequestHeaders, StorageSpaceResponse,
@@ -17,7 +18,8 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
     @patch("aiohttp.ClientSession")
     async def test_download_file(self, request_mock: AsyncMock):
         request_mock.return_value.__aenter__.return_value.get.return_value.status = 200
-        request_mock.return_value.__aenter__.return_value.get.return_value.content = self.stream_generator
+        request_mock.return_value.__aenter__.return_value\
+            .get.return_value.content = self.stream_generator
         folder_record = models.FolderRecord(
             owner=self.key_record,
             name="folder",
@@ -146,4 +148,10 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
             headers=StorageRequestHeaders(
                 authorization=self.storage_record.token,
             ).dict(by_alias=True)
+        )
+
+    def __set_request_mock_value(self, mock: AsyncMock, response: BaseModel):
+        mock.return_value.__aenter__.return_value.status = 200
+        mock.return_value.__aenter__.return_value.json = AsyncMock(
+            return_value=response.dict()
         )
