@@ -2,6 +2,7 @@ from typing import AsyncIterator, Type
 
 import aiohttp
 from aiohttp.client import ClientResponse
+from fastapi import status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from starlette.background import BackgroundTask
@@ -19,7 +20,7 @@ class BaseHandler:
         self._storage = storage
 
     async def parse_storage_space(self, response: ClientResponse):
-        if not response.ok:
+        if response.status != status.HTTP_200_OK:
             raise core.StorageResponseError(response)
         storage_info = storage_api.StorageSpaceResponse.parse_obj(await response.json())
         self._storage.used_space = storage_info.used
@@ -116,7 +117,7 @@ class StorageClient:
                     authorization=file_record.storage.token
                 ).dict(by_alias=True),
             )
-            if not res.ok:
+            if res.status != status.HTTP_200_OK:
                 raise core.StorageResponseError(res)
             try:
                 return StreamingResponse(res.content, background=BackgroundTask(res.close))

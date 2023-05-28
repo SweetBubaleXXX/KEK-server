@@ -128,7 +128,7 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
         )
 
     def __set_request_mock_value(self, mock: AsyncMock, response: BaseModel):
-        mock.return_value.__aenter__.return_value.ok = True
+        mock.return_value.__aenter__.return_value.status = 200
         mock.return_value.__aenter__.return_value.json = AsyncMock(
             return_value=response.dict()
         )
