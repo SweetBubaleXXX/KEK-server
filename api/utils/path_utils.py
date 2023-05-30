@@ -9,7 +9,7 @@ def normalize(path: str) -> str:
 
 
 def split_into_components(path: str) -> list[str]:
-    return normalize(path).split(SEPARATOR)
+    return normalize(path).lstrip(SEPARATOR).split(SEPARATOR)
 
 
 def split_head_and_tail(path: str) -> tuple[str, str]:
