@@ -125,6 +125,16 @@ class StorageClient:
                 res.close()
                 raise
 
+    @staticmethod
+    async def delete_folder(folder_record: models.FolderRecord, db: Session):
+        for child_folder in folder_record.child_folders:
+            await StorageClient.delete_folder(child_folder, db)
+        for file in folder_record.files:
+            storage_client = StorageClient(db, folder_record.owner, file.storage)
+            await storage_client.delete_file(file)
+        db.delete(folder_record)
+        db.commit()
+
     async def upload_file(self,
                           full_path: str,
                           file_size: int,

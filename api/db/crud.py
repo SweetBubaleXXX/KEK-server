@@ -18,14 +18,6 @@ def __get_child_folder(parent_folder: models.FolderRecord,
     ), None)
 
 
-def __get_child_file(parent_folder: models.FolderRecord,
-                     filename: str) -> models.FileRecord | None:
-    return next(filter(
-        lambda child_file: child_file.filename == filename,
-        parent_folder.files
-    ), None)
-
-
 def _update_child_full_paths(folder: models.FolderRecord):
     for file in folder.files:
         file.full_path = posixpath.join(folder.full_path, file.filename)
