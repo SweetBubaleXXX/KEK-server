@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, root_validator, validator
+from pydantic import BaseModel, Field, root_validator, validator
 
 from ..utils.path_utils import normalize
 
@@ -14,7 +14,7 @@ class Item(BaseModel):
 
 
 class RenameItem(Item):
-    new_name: str
+    new_name: str = Field(..., regex=r"^\w+$")
 
 
 class MoveItem(BaseModel):
