@@ -2,7 +2,6 @@ import base64
 import binascii
 
 from fastapi import Depends, Header, status
-from fastapi.exceptions import HTTPException
 from KEK.exceptions import VerificationError
 from KEK.hybrid import PublicKEK
 from sqlalchemy.orm import Session
