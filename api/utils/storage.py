@@ -19,9 +19,12 @@ class BaseHandler:
         self._client = key_record
         self._storage = storage
 
-    async def parse_storage_space(self, response: ClientResponse):
+    @staticmethod
+    def validate_response(response: ClientResponse):
         if response.status != status.HTTP_200_OK:
             raise core.StorageResponseError(response)
+
+    async def parse_storage_space(self, response: ClientResponse):
         storage_info = storage_api.StorageSpaceResponse.parse_obj(await response.json())
         self._storage.used_space = storage_info.used
 
@@ -33,6 +36,7 @@ class DeleteFileHandler(BaseHandler):
                                       headers=storage_api.StorageRequestHeaders(
                                           authorization=self._storage.token
                                       ).dict(by_alias=True)) as res:
+                self.validate_response(res)
                 await self.parse_storage_space(res)
 
     async def __call__(self, file_record: models.FileRecord):
@@ -55,7 +59,7 @@ class UploadExistingFileRecordHandler(BaseUploadFileHandler):
     async def __call__(self,
                        file_record: models.FileRecord,
                        file_size: int,
-                       stream: AsyncIterator[bytes]):
+                       stream: AsyncIterator[bytes]) -> models.FileRecord:
         old_storage_id = file_record.storage_id
         file_record.storage = self._storage
         file_record.size = file_size
@@ -78,15 +82,15 @@ class UploadNewFileRecordHandler(BaseUploadFileHandler):
     async def __call__(self,
                        full_path: str,
                        file_size: int,
-                       stream: AsyncIterator[bytes]):
+                       stream: AsyncIterator[bytes]) -> models.FileRecord:
         folder_name, filename = split_head_and_tail(full_path)
         folder_record = crud.find_folder(self._session, owner=self._client, full_path=folder_name)
         if folder_record is None:
             raise client.NotExists(detail="Parent folder doesn't exist")
         file_record = crud.create_file_record(self._session, folder_record, filename,
                                               self._storage, file_size)
-        self._session.add(file_record)
         await self.upload_stream(stream, file_record)
+        self._session.add(file_record)
         return file_record
 
 
@@ -117,8 +121,7 @@ class StorageClient:
                     authorization=file_record.storage.token
                 ).dict(by_alias=True),
             )
-            if res.status != status.HTTP_200_OK:
-                raise core.StorageResponseError(res)
+            BaseHandler.validate_response(res)
             try:
                 return StreamingResponse(res.content, background=BackgroundTask(res.close))
             except aiohttp.ClientError:
@@ -126,9 +129,9 @@ class StorageClient:
                 raise
 
     @staticmethod
-    async def delete_folder(folder_record: models.FolderRecord, db: Session):
+    async def delete_folder(db: Session, folder_record: models.FolderRecord):
         for child_folder in folder_record.child_folders:
-            await StorageClient.delete_folder(child_folder, db)
+            await StorageClient.delete_folder(db, child_folder)
         for file in folder_record.files:
             storage_client = StorageClient(db, folder_record.owner, file.storage)
             await storage_client.delete_file(file)

@@ -58,3 +58,13 @@ class NotExists(HTTPException):
         headers: HEADERS = None,
     ):
         super().__init__(status_code, detail, headers)
+
+
+class NotEnoughSpace(HTTPException):
+    def __init__(
+        self,
+        status_code: int = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        detail="Not enough space",
+        headers: HEADERS = None,
+    ):
+        super().__init__(status_code, detail, headers)

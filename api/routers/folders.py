@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from ..db import crud, models
-from ..dependencies import get_db, get_folder_record, get_key_record, verify_token
+from ..dependencies import get_db, get_folder_record_required, get_key_record, verify_token
 from ..exceptions import client
 from ..schemas.base import MoveItem, RenameItem
 from ..schemas.folders import CreateFolder
@@ -62,18 +62,14 @@ def move_folder(
 
 @router.get("/list")
 def list_folder(
-    folder_record: models.FolderRecord | None = Depends(get_folder_record),
+    folder_record: models.FolderRecord = Depends(get_folder_record_required),
 ):
-    if folder_record is None:
-        raise client.NotExists(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
     return crud.list_folder(folder_record)
 
 
 @router.delete("/rmdir")
 async def delete_folder(
-    folder_record: models.FolderRecord | None = Depends(get_folder_record),
+    folder_record: models.FolderRecord = Depends(get_folder_record_required),
     db: Session = Depends(get_db)
 ):
-    if folder_record is None:
-        raise client.NotExists(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
-    await StorageClient.delete_folder(folder_record, db)
+    await StorageClient.delete_folder(db, folder_record)

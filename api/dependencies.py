@@ -37,6 +37,14 @@ def get_folder_record(path: str = Header(),
     return crud.find_folder(db, owner=key_record, full_path=normalize(path))
 
 
+def get_folder_record_required(
+    folder_record: models.FolderRecord | None = Depends(get_folder_record)
+) -> models.FolderRecord:
+    if folder_record is None:
+        raise client.NotExists(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
+    return folder_record
+
+
 def get_file_record(path: str = Header(),
                     key_record: models.KeyRecord = Depends(get_key_record),
                     db: Session = Depends(get_db)) -> models.FileRecord | None:
@@ -81,4 +89,4 @@ def validate_available_space(file_size: int = Header(),
                              db: Session = Depends(get_db)):
     available_space = key_record.storage_size_limit - crud.calculate_used_storage(db, key_record)
     if file_size > available_space:
-        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+        raise client.NotEnoughSpace()
