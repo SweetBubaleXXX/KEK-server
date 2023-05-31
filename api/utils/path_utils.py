@@ -5,6 +5,8 @@ SEPARATOR = "/"
 
 
 def normalize(path: str) -> str:
+    if path == SEPARATOR:
+        return SEPARATOR
     return posixpath.normpath(path).rstrip(SEPARATOR)
 
 

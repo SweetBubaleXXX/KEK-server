@@ -60,7 +60,7 @@ def move_folder(
                                                  full_path=request.destination)
     if not (folder_record and destination_folder_record):
         raise client.NotExists(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
-    sibling_folders = crud.list_folder(destination_folder_record.parent_folder)
+    sibling_folders = crud.list_folder(destination_folder_record)
     existing_file_found = any(folder_record.name == file.filename for file in sibling_folders.files)
     if existing_file_found or folder_record.name in sibling_folders.folders:
         raise client.AlreadyExists(detail="Folder/file with this name already exists")
