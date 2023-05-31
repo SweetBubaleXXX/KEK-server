@@ -3,8 +3,9 @@ from fastapi.requests import Request
 from sqlalchemy.orm import Session
 
 from ..db import crud, models
-from ..dependencies import (get_available_storage, get_db, get_file_record_required,
+from ..dependencies import (get_available_storage, get_db, get_file_record_required, get_path,
                             validate_available_space, verify_token)
+from ..exceptions import client
 from ..utils.storage import StorageClient
 
 router = APIRouter(tags=["files"], dependencies=[Depends(verify_token)])
@@ -20,11 +21,13 @@ async def download_file(
 @router.post("/upload", dependencies=[Depends(validate_available_space)])
 async def upload_file(
     request: Request,
-    path: str = Header(),
+    path: str = Depends(get_path),
     file_size: int = Header(),
     storage_client: StorageClient = Depends(get_available_storage),
     db: Session = Depends(get_db),
 ):
+    if crud.folder_exists(db, owner=storage_client.client, full_path=path):
+        raise client.AlreadyExists(detail="Folder with this name already exists")
     file_record = await storage_client.upload_file(path, file_size, request.stream())
     crud.update_record(db, file_record)
 

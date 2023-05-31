@@ -30,7 +30,11 @@ def get_key(key_record: models.KeyRecord = Depends(get_key_record)) -> PublicKEK
     return public_key
 
 
-def get_folder_record(path: str = Header(),
+def get_path(path: str = Header()) -> str:
+    return normalize(path)
+
+
+def get_folder_record(path: str = Depends(get_path),
                       key_record: models.KeyRecord = Depends(get_key_record),
                       db: Session = Depends(get_db)) -> models.FolderRecord | None:
     return crud.find_folder(db, owner=key_record, full_path=normalize(path))
@@ -44,7 +48,7 @@ def get_folder_record_required(
     return folder_record
 
 
-def get_file_record(path: str = Header(),
+def get_file_record(path: str = Depends(get_path),
                     key_record: models.KeyRecord = Depends(get_key_record),
                     db: Session = Depends(get_db)) -> models.FileRecord | None:
     return crud.find_file(db, owner=key_record, full_path=normalize(path))

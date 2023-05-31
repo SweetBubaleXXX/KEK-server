@@ -55,9 +55,22 @@ def find_folder(db: Session, **filters) -> models.FolderRecord | None:
     return db.query(models.FolderRecord).filter_by(**filters).first()
 
 
+def folder_exists(db: Session, **filters) -> bool:
+    return bool(db.query(
+        db.query(models.FolderRecord).filter_by(**filters).exists()
+    ).scalar())
+
+
 def find_file(db: Session, owner: models.KeyRecord, **filters) -> models.FileRecord | None:
     return db.query(models.FileRecord).filter_by(**filters)\
         .join(models.FileRecord.folder).filter_by(owner=owner).first()
+
+
+def file_exists(db: Session, owner: models.KeyRecord, **filters) -> bool:
+    return bool(db.query(
+        db.query(models.FileRecord).filter_by(**filters)
+        .join(models.FileRecord.folder).filter_by(owner=owner).exists()
+    ).scalar())
 
 
 def return_or_create_root_folder(db: Session,
