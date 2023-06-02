@@ -74,7 +74,7 @@ class StorageRecord(Base):
     files = relationship("FileRecord", back_populates="storage")
 
     @hybrid_property
-    def free(self):
+    def free(self) -> int:
         return self.capacity - self.used_space
 
 

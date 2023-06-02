@@ -133,3 +133,24 @@ class TestFoldres(TestWithRegisteredKey):
             "destination": "nonexistent_destinations"
         })
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_delete_folder(self):
+        response = self.authorized_request("post", "/folders/mkdir", json={
+            "path": "/parent/child",
+            "recursive": True
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.authorized_request("delete", "/folders/rmdir", headers={
+            "path": "/parent"
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.authorized_request("get", "/folders/list", headers={
+            "path": "/parent/child"
+        })
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_delete_folder_not_exists(self):
+        response = self.authorized_request("delete", "/folders/rmdir", headers={
+            "path": "nonexistent_path"
+        })
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
