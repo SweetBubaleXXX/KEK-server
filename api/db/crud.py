@@ -18,12 +18,12 @@ def __get_child_folder(parent_folder: models.FolderRecord,
     ), None)
 
 
-def _update_child_full_paths(folder: models.FolderRecord):
+def __update_child_full_paths(folder: models.FolderRecord):
     for file in folder.files:
         file.full_path = posixpath.join(folder.full_path, file.filename)
     for child_folder in folder.child_folders:
         child_folder.full_path = posixpath.join(folder.full_path, child_folder.name)
-        _update_child_full_paths(child_folder)
+        __update_child_full_paths(child_folder)
 
 
 def update_record(db: Session, record: models.Record) -> models.Record:
@@ -49,28 +49,6 @@ def add_key(db: Session,
         is_activated=is_activated or config.settings.user_is_activated_default
     )
     return update_record(db, key_record)
-
-
-def find_folder(db: Session, **filters) -> models.FolderRecord | None:
-    return db.query(models.FolderRecord).filter_by(**filters).first()
-
-
-def folder_exists(db: Session, **filters) -> bool:
-    return bool(db.query(
-        db.query(models.FolderRecord).filter_by(**filters).exists()
-    ).scalar())
-
-
-def find_file(db: Session, owner: models.KeyRecord, **filters) -> models.FileRecord | None:
-    return db.query(models.FileRecord).filter_by(**filters)\
-        .join(models.FileRecord.folder).filter_by(owner=owner).first()
-
-
-def file_exists(db: Session, owner: models.KeyRecord, **filters) -> bool:
-    return bool(db.query(
-        db.query(models.FileRecord).filter_by(**filters)
-        .join(models.FileRecord.folder).filter_by(owner=owner).exists()
-    ).scalar())
 
 
 def return_or_create_root_folder(db: Session,
@@ -121,7 +99,7 @@ def rename_folder(db: Session,
     folder.name = new_name
     parent_path, _ = split_head_and_tail(folder.full_path)
     folder.full_path = posixpath.join(parent_path, new_name)
-    _update_child_full_paths(folder)
+    __update_child_full_paths(folder)
     return update_record(db, folder)
 
 
@@ -130,7 +108,7 @@ def move_folder(db: Session,
                 destination_folder: models.FolderRecord) -> models.FolderRecord:
     folder.parent_folder = destination_folder
     folder.full_path = posixpath.join(destination_folder.full_path, folder.name)
-    _update_child_full_paths(folder)
+    __update_child_full_paths(folder)
     return update_record(db, folder)
 
 
@@ -143,6 +121,34 @@ def list_folder(folder: models.FolderRecord) -> FolderContent:
         ), folder.files),
         folders=map(lambda folder: folder.name, folder.child_folders)
     )
+
+
+def find_folder(db: Session, **filters) -> models.FolderRecord | None:
+    return db.query(models.FolderRecord).filter_by(**filters).first()
+
+
+def folder_exists(db: Session, **filters) -> bool:
+    return bool(db.query(
+        db.query(models.FolderRecord).filter_by(**filters).exists()
+    ).scalar())
+
+
+def find_file(db: Session, owner: models.KeyRecord, **filters) -> models.FileRecord | None:
+    return db.query(models.FileRecord).filter_by(**filters)\
+        .join(models.FileRecord.folder).filter_by(owner=owner).first()
+
+
+def file_exists(db: Session, owner: models.KeyRecord, **filters) -> bool:
+    return bool(db.query(
+        db.query(models.FileRecord).filter_by(**filters)
+        .join(models.FileRecord.folder).filter_by(owner=owner).exists()
+    ).scalar())
+
+
+def item_in_folder(db: Session, name: str, folder: models.FolderRecord) -> bool:
+    existing_folder_found = folder_exists(db, parent_folder=folder, name=name)
+    existing_file_found = file_exists(db, owner=folder.owner, folder=folder, filename=name)
+    return existing_file_found or existing_folder_found
 
 
 def create_file_record(db: Session,

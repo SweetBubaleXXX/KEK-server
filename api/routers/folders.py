@@ -42,9 +42,7 @@ def rename_folder(
     folder_record = crud.find_folder(db, owner=key_record, full_path=request.path)
     if folder_record is None:
         raise client.NotExists(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
-    sibling_folders = crud.list_folder(folder_record.parent_folder)
-    existing_file_found = any(request.new_name == file.filename for file in sibling_folders.files)
-    if existing_file_found or request.new_name in sibling_folders.folders:
+    if crud.item_in_folder(db, request.new_name, folder_record.parent_folder):
         raise client.AlreadyExists(detail="Folder/file with this name already exists")
     crud.rename_folder(db, folder_record, request.new_name)
 
@@ -60,9 +58,7 @@ def move_folder(
                                                  full_path=request.destination)
     if not (folder_record and destination_folder_record):
         raise client.NotExists(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
-    sibling_folders = crud.list_folder(destination_folder_record)
-    existing_file_found = any(folder_record.name == file.filename for file in sibling_folders.files)
-    if existing_file_found or folder_record.name in sibling_folders.folders:
+    if crud.item_in_folder(db, folder_record.name, destination_folder_record):
         raise client.AlreadyExists(detail="Folder/file with this name already exists")
     crud.move_folder(db, folder_record, destination_folder_record)
 
