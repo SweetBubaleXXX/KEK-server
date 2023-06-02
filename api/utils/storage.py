@@ -63,6 +63,7 @@ class UploadExistingFileRecordHandler(BaseUploadFileHandler):
         old_storage_id = file_record.storage_id
         file_record.storage = self._storage
         file_record.size = file_size
+        file_record.update_timestamp()
         self._session.add(file_record)
         await self.upload_stream(stream, file_record)
         if old_storage_id != self._storage.id:

@@ -54,8 +54,11 @@ class FileRecord(Base):
     storage = relationship("StorageRecord", back_populates="files", uselist=False)
 
     @hybrid_property
-    def owner(self):
+    def owner(self) -> KeyRecord:
         return self.folder.owner
+
+    def update_timestamp(self):
+        self.last_modified = datetime.utcnow()
 
 
 class StorageRecord(Base):
