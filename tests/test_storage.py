@@ -20,17 +20,17 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
         request_mock.return_value.__aenter__.return_value.get.return_value.status = 200
         request_mock.return_value.__aenter__.return_value\
             .get.return_value.content = self.stream_generator
-        folder_record = models.FolderRecord(
-            owner=self.key_record,
-            name="folder",
-            full_path="folder"
+        folder_record = crud.create_folders_recursively(
+            self.session,
+            self.key_record,
+            "/folder"
         )
-        file_record = models.FileRecord(
-            folder=folder_record,
-            storage=self.storage_record,
-            filename="filename",
-            full_path="folder/filename",
-            size=100
+        file_record = crud.create_file_record(
+            self.session,
+            folder_record,
+            "filename",
+            self.storage_record,
+            100
         )
         crud.update_record(self.session, file_record)
 
@@ -44,17 +44,17 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
             capacity=10000000
         )
         self.__set_request_mock_value(request_mock, storage_response)
-        folder_record = models.FolderRecord(
-            owner=self.key_record,
-            name="folder",
-            full_path="folder"
+        folder_record = crud.create_folders_recursively(
+            self.session,
+            self.key_record,
+            "/folder"
         )
-        existing_file_record = models.FileRecord(
-            folder=folder_record,
-            storage=self.storage_record,
-            filename="filename",
-            full_path="folder/filename",
-            size=0
+        existing_file_record = crud.create_file_record(
+            self.session,
+            folder_record,
+            "filename",
+            self.storage_record,
+            storage_response.used
         )
         crud.update_record(self.session, existing_file_record)
         prev_modified = existing_file_record.last_modified
@@ -73,7 +73,7 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
         self.assertEqual(file_record.size, new_file_size)
         self.assertGreater(file_record.last_modified, prev_modified)
         request_mock.assert_called_once_with(
-            f'/file/{file_record.id}',
+            f"/file/{file_record.id}",
             data=self.stream_generator,
             headers=UploadRequestHeaders(
                 authorization=self.storage_record.token,
@@ -88,17 +88,17 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
             capacity=10000000
         )
         self.__set_request_mock_value(request_mock, storage_response)
-        folder_record = models.FolderRecord(
-            owner=self.key_record,
-            name="folder",
-            full_path="folder"
+        folder_record = crud.create_folders_recursively(
+            self.session,
+            self.key_record,
+            "/folder"
         )
         crud.update_record(self.session, folder_record)
 
         storage_client = StorageClient(self.session, self.key_record, self.storage_record)
         file_size = 200
         file_record = await storage_client.upload_file(
-            "folder/filename",
+            "/folder/filename",
             file_size,
             self.stream_generator
         )
@@ -109,7 +109,7 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
         self.assertEqual(file_record.storage_id, self.storage_record.id)
         self.assertEqual(file_record.folder.id, folder_record.id)
         request_mock.assert_called_once_with(
-            f'/file/{file_record.id}',
+            f"/file/{file_record.id}",
             data=self.stream_generator,
             headers=UploadRequestHeaders(
                 authorization=self.storage_record.token,
@@ -124,17 +124,17 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
             capacity=10000000
         )
         self.__set_request_mock_value(request_mock, storage_response)
-        folder_record = models.FolderRecord(
-            owner=self.key_record,
-            name="folder",
-            full_path="folder"
+        folder_record = crud.create_folders_recursively(
+            self.session,
+            self.key_record,
+            "/folder"
         )
-        file_record = models.FileRecord(
-            folder=folder_record,
-            storage=self.storage_record,
-            filename="filename",
-            full_path="folder/filename",
-            size=100
+        file_record = crud.create_file_record(
+            self.session,
+            folder_record,
+            "filename",
+            self.storage_record,
+            100
         )
         crud.update_record(self.session, file_record)
 
@@ -144,11 +144,52 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
 
         self.assertListEqual(folder_record.files, [])
         request_mock.assert_called_once_with(
-            f'/file/{file_record.id}',
+            f"/file/{file_record.id}",
             headers=StorageRequestHeaders(
                 authorization=self.storage_record.token,
             ).dict(by_alias=True)
         )
+
+    @patch("aiohttp.ClientSession.delete")
+    async def test_delete_folder(self, request_mock: AsyncMock):
+        storage_response = StorageSpaceResponse(
+            used=0,
+            capacity=10000000
+        )
+        self.__set_request_mock_value(request_mock, storage_response)
+        parent_folder = crud.create_folders_recursively(
+            self.session,
+            self.key_record,
+            "/parent_folder"
+        )
+        folder_record = crud.create_folders_recursively(
+            self.session,
+            self.key_record,
+            "/parent_folder/folder"
+        )
+        filenames = ("a", "b", "c")
+        for name in filenames:
+            file_record = crud.create_file_record(
+                self.session,
+                folder_record,
+                name,
+                self.storage_record,
+                1
+            )
+            crud.update_record(self.session, file_record)
+        crud.update_record(self.session, parent_folder)
+
+        await StorageClient.delete_folder(self.session, parent_folder)
+
+        found_folder_record = crud.find_folder(self.session, full_path="/parent_folder")
+        self.assertIsNone(found_folder_record)
+        for name in filenames:
+            found_file_record = crud.find_file(
+                self.session,
+                self.key_record,
+                full_path=f"/parent_folder/folder/{name}"
+            )
+            self.assertIsNone(found_file_record)
 
     def __set_request_mock_value(self, mock: AsyncMock, response: BaseModel):
         mock.return_value.__aenter__.return_value.status = 200
