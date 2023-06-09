@@ -72,6 +72,14 @@ def get_available_storage(file_size: int = Header(),
     raise core.NoAvailableStorage
 
 
+def validate_available_space(file_size: int = Header(),
+                             key_record: models.KeyRecord = Depends(get_key_record),
+                             db: Session = Depends(get_db)):
+    available_space = key_record.storage_size_limit - crud.calculate_used_storage(db, key_record)
+    if file_size > available_space:
+        raise client.NotEnoughSpace()
+
+
 def verify_token(signed_token: str | None = Header(default=None),
                  key: PublicKEK = Depends(get_key),
                  session_storage: BaseSessionStorage = Depends(get_session)):
@@ -85,11 +93,3 @@ def verify_token(signed_token: str | None = Header(default=None),
     except (binascii.Error, VerificationError, AssertionError) as exc:
         raise client.AuthenticationFailed() from exc
     session_storage.pop(key_id)
-
-
-def validate_available_space(file_size: int = Header(),
-                             key_record: models.KeyRecord = Depends(get_key_record),
-                             db: Session = Depends(get_db)):
-    available_space = key_record.storage_size_limit - crud.calculate_used_storage(db, key_record)
-    if file_size > available_space:
-        raise client.NotEnoughSpace()

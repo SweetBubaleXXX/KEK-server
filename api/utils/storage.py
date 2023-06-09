@@ -64,16 +64,18 @@ class UploadExistingFileRecordHandler(BaseUploadFileHandler):
         file_record.storage = self._storage
         file_record.size = file_size
         file_record.update_timestamp()
-        self._session.add(file_record)
         await self.upload_stream(stream, file_record)
-        if old_storage_id != self._storage.id:
-            await self.__delete_from_old_storage(file_record, old_storage_id)
-        return file_record
+        self._session.add(file_record)
+        try:
+            if old_storage_id != self._storage.id:
+                await self.__delete_from_old_storage(file_record, old_storage_id)
+        finally:
+            return file_record
 
     async def __delete_from_old_storage(self, file_record: models.FileRecord, old_storage_id: str):
         old_storage = crud.get_storage(self._session, old_storage_id)
         if old_storage is None:
-            raise core.StorageNotFound
+            raise core.StorageNotFound()
         delete_handler = DeleteFileHandler(self._session, self._client, old_storage)
         await delete_handler.delete_from_storage(file_record)
         self._session.add(old_storage)
