@@ -6,7 +6,7 @@ from ..utils.path_utils import normalize
 
 
 class Item(BaseModel):
-    path: str
+    path: str = Field(..., regex=r"^/[\w+/]+$")
 
     @validator("path")
     def normalize_path(cls, v):
@@ -14,16 +14,15 @@ class Item(BaseModel):
 
 
 class RenameItem(Item):
-    new_name: str = Field(..., regex=r"^\w+$")
+    new_name: str = Field(..., regex=r"^[\w+]+$")
 
 
-class MoveItem(BaseModel):
-    path: str
-    destination: str
+class MoveItem(Item):
+    destination: str = Field(..., regex=r"^/[\w+/]+$")
 
     _normalize_destination = validator("destination", allow_reuse=True)(normalize)
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def validate_destination_path(cls, values):
         path = values["path"]
         destination = values["destination"]

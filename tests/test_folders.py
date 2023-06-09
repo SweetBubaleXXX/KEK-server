@@ -8,7 +8,7 @@ from tests.base_tests import TestWithRegisteredKey, add_test_authentication
 class TestFoldres(TestWithRegisteredKey):
     def test_create_folder_parent_not_exists(self):
         response = self.authorized_request("post", "/folders/mkdir", json={
-            "path": "nonexistent_parent/child"
+            "path": "/nonexistent_parent/child"
         })
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -96,7 +96,7 @@ class TestFoldres(TestWithRegisteredKey):
 
     def test_list_folder_not_exists(self):
         response = self.authorized_request("get", "/folders/list", headers={
-            "path": "nonexistent_path"
+            "path": "/nonexistent_path"
         })
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
@@ -129,8 +129,8 @@ class TestFoldres(TestWithRegisteredKey):
 
     def test_move_folder_not_exists(self):
         response = self.authorized_request("post", "/folders/move", json={
-            "path": "nonexistent_path",
-            "destination": "nonexistent_destinations"
+            "path": "/nonexistent_path",
+            "destination": "/nonexistent_destinations"
         })
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
@@ -151,6 +151,6 @@ class TestFoldres(TestWithRegisteredKey):
 
     def test_delete_folder_not_exists(self):
         response = self.authorized_request("delete", "/folders/rmdir", headers={
-            "path": "nonexistent_path"
+            "path": "/nonexistent_path"
         })
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
