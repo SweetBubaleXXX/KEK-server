@@ -65,11 +65,14 @@ def get_file_record_required(
 def get_available_storage(file_size: int = Header(),
                           key_record: models.KeyRecord = Depends(get_key_record),
                           db: Session = Depends(get_db)) -> StorageClient:
-    storages = db.query(models.StorageRecord).order_by(models.StorageRecord.priority).all()
+    storages = db.query(models.StorageRecord).order_by(
+        models.StorageRecord.priority,
+        models.StorageRecord.free
+    ).all()
     for storage in storages:
         if file_size <= storage.free:
             return StorageClient(db, key_record, storage)
-    raise core.NoAvailableStorage
+    raise core.NoAvailableStorage()
 
 
 def validate_available_space(file_size: int = Header(),
