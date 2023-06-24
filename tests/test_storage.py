@@ -1,3 +1,4 @@
+from asyncio import sleep
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, patch
 
@@ -61,6 +62,7 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
 
         storage_client = StorageClient(self.session, self.key_record, self.storage_record)
         new_file_size = 200
+        await sleep(0.1)
         file_record = await storage_client.upload_file(
             existing_file_record.full_path,
             new_file_size,
