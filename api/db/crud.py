@@ -41,7 +41,7 @@ def add_key(db: Session,
             key_id: str,
             public_key: str,
             storage_size_limit: int | None = None,
-            is_activated: bool | None = None) -> models.KeyRecord:
+            is_activated: bool = False) -> models.KeyRecord:
     key_record = models.KeyRecord(
         id=key_id,
         public_key=public_key,
