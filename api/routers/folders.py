@@ -70,6 +70,13 @@ def list_folder(
     return folder_record.json()
 
 
+@router.get("/size")
+def folder_size(
+    folder_record: models.FolderRecord = Depends(get_folder_record_required)
+):
+    return folder_record.size
+
+
 @router.delete("/rmdir")
 async def delete_folder(
     folder_record: models.FolderRecord = Depends(get_folder_record_required),
