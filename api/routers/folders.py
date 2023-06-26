@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from ..db import crud, models
 from ..dependencies import get_db, get_folder_record_required, get_key_record, verify_token
 from ..exceptions import client
-from ..schemas.base import MoveItem, RenameItem
-from ..schemas.folders import CreateFolder
+from ..schemas.base import MoveItemRequest, RenameItemRequest
+from ..schemas.folders import CreateFolderRequest
 from ..utils.path_utils import split_head_and_tail
 from ..utils.storage import StorageClient
 
@@ -14,7 +14,7 @@ router = APIRouter(tags=["folders"], dependencies=[Depends(verify_token)])
 
 @router.post("/mkdir")
 def create_folder(
-    request: CreateFolder,
+    request: CreateFolderRequest,
     key_record: models.KeyRecord = Depends(get_key_record),
     db: Session = Depends(get_db),
 ):
@@ -35,7 +35,7 @@ def create_folder(
 
 @router.post("/rename")
 def rename_folder(
-    request: RenameItem,
+    request: RenameItemRequest,
     key_record: models.KeyRecord = Depends(get_key_record),
     db: Session = Depends(get_db),
 ):
@@ -49,7 +49,7 @@ def rename_folder(
 
 @router.post("/move")
 def move_folder(
-    request: MoveItem,
+    request: MoveItemRequest,
     key_record: models.KeyRecord = Depends(get_key_record),
     db: Session = Depends(get_db),
 ):
@@ -67,7 +67,7 @@ def move_folder(
 def list_folder(
     folder_record: models.FolderRecord = Depends(get_folder_record_required),
 ):
-    return crud.list_folder(folder_record)
+    return folder_record.json()
 
 
 @router.delete("/rmdir")

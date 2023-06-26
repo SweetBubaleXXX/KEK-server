@@ -2,10 +2,10 @@ from typing import Iterable
 
 from pydantic import BaseModel, validator
 
-from .base import FileInfo, Item
+from .base import FileInfo, ItemRequest
 
 
-class CreateFolder(Item):
+class CreateFolderRequest(ItemRequest):
     recursive: bool = False
 
 

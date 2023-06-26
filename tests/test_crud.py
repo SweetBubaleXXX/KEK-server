@@ -159,8 +159,31 @@ class TestCrud(TestWithKeyRecord):
         self.session.add(parent_folder)
         self.session.commit()
         self.session.refresh(parent_folder)
-        folder_content = crud.list_folder(parent_folder)
+        folder_content = parent_folder.json()
         self.assertListEqual(folder_content.folders, child_names)
+
+    def test_folder_size(self):
+        parent_folder = models.FolderRecord(
+            owner=self.key_record,
+            name="parent_folder",
+            full_path="parent_folder"
+        )
+        expected_size = 0
+        child_names = [f"folder{i}" for i in range(3)]
+        for child_folder_name in child_names:
+            child_folder = models.FolderRecord(
+                owner=self.key_record,
+                name=child_folder_name,
+                full_path=f"parent_folder/{child_folder_name}"
+            )
+            for i in range(10):
+                child_folder.files.append(models.FileRecord(size=i))
+                expected_size += i
+            parent_folder.child_folders.append(child_folder)
+        self.session.add(parent_folder)
+        self.session.commit()
+        self.session.refresh(parent_folder)
+        self.assertEqual(parent_folder.size, expected_size)
 
     def test_create_file_record(self):
         folder_record = models.FolderRecord(

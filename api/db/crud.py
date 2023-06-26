@@ -4,8 +4,6 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .. import config
-from ..schemas.base import FileInfo
-from ..schemas.folders import FolderContent
 from ..utils.path_utils import split_head_and_tail, split_into_components
 from . import models
 
@@ -110,17 +108,6 @@ def move_folder(db: Session,
     folder.full_path = posixpath.join(destination_folder.full_path, folder.name)
     __update_child_full_paths(folder)
     return update_record(db, folder)
-
-
-def list_folder(folder: models.FolderRecord) -> FolderContent:
-    return FolderContent(
-        files=map(lambda file: FileInfo(
-            filename=file.filename,
-            last_modified=file.last_modified,
-            size=file.size
-        ), folder.files),
-        folders=map(lambda folder: folder.name, folder.child_folders)
-    )
 
 
 def find_folder(db: Session, **filters) -> models.FolderRecord | None:

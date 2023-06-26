@@ -5,6 +5,8 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
+from ..schemas.base import FileInfo
+from ..schemas.folders import FolderContent
 from ..utils.path_utils import ROOT_PATH
 from .engine import Base
 
@@ -38,6 +40,18 @@ class FolderRecord(Base):
                                  cascade="all, delete")
     files = relationship("FileRecord", back_populates="folder", cascade="all, delete")
 
+    @hybrid_property
+    def size(self) -> int:
+        files_size = sum(file.size for file in self.files)
+        child_folders_size = sum(folder.size for folder in self.child_folders)
+        return files_size + child_folders_size
+
+    def json(self) -> FolderContent:
+        return FolderContent(
+            files=map(lambda file: file.json(), self.files),
+            folders=map(lambda folder: folder.name, self.child_folders)
+        )
+
 
 class FileRecord(Base):
     __tablename__ = "files"
@@ -56,6 +70,13 @@ class FileRecord(Base):
     @hybrid_property
     def owner(self) -> KeyRecord:
         return self.folder.owner
+
+    def json(self) -> FileInfo:
+        return FileInfo(
+            name=self.filename,
+            size=self.size,
+            last_modified=self.last_modified,
+        )
 
     def update_timestamp(self):
         self.last_modified = datetime.utcnow()
