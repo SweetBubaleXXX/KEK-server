@@ -31,6 +31,11 @@ class MoveItemRequest(ItemRequest):
         return values
 
 
+class StorageInfoResponse(BaseModel):
+    used: int
+    limit: int
+
+
 class FileInfo(BaseModel):
     name: str
     size: int
