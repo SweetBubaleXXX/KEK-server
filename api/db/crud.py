@@ -40,14 +40,13 @@ def add_key(
     db: Session,
     key_id: str,
     public_key: str,
-    storage_size_limit: int | None = None,
+    storage_limit: int | None = None,
     is_activated: bool = False,
 ) -> models.KeyRecord:
     key_record = models.KeyRecord(
         id=key_id,
         public_key=public_key,
-        storage_size_limit=storage_size_limit
-        or config.settings.user_storage_size_limit,
+        storage_size_limit=storage_limit or config.settings.user_storage_size_limit,
         is_activated=is_activated or config.settings.user_is_activated_default,
     )
     return update_record(db, key_record)
@@ -183,5 +182,4 @@ def calculate_used_storage(db: Session, key_record: models.KeyRecord) -> int:
         .join(models.FileRecord.folder)
         .filter_by(owner=key_record)
         .scalar()
-        or 0
-    )
+    ) or 0

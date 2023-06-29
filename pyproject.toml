@@ -1,0 +1,9 @@
+[tool.pytest.ini_options]
+testpaths = "tests"
+filterwarnings = "ignore::DeprecationWarning"
+
+[tool.isort]
+profile = "black"
+
+[mypy]
+ignore_missing_imports = true

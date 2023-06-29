@@ -11,7 +11,7 @@ from api.app import app
 from api.db import models
 from tests.setup_test_env import setup_config, setup_database, teardown_database
 
-RequestMethod = Literal['get', 'post', 'delete']
+RequestMethod = Literal["get", "post", "delete"]
 
 
 class TestWithDatabase(unittest.TestCase):
@@ -33,7 +33,7 @@ class TestWithKeyRecord(TestWithDatabase):
     def __add_key_to_db(self) -> models.KeyRecord:
         key_record = models.KeyRecord(
             id=self.key.key_id.hex(),
-            public_key=self.key.public_key.serialize().decode("utf-8")
+            public_key=self.key.public_key.serialize().decode("utf-8"),
         )
         self.session.add(key_record)
         self.session.commit()
@@ -41,7 +41,7 @@ class TestWithKeyRecord(TestWithDatabase):
         return key_record
 
 
-class TestWithClient():
+class TestWithClient:
     client = TestClient(app)
 
 
@@ -49,9 +49,7 @@ class TestWithRegisteredKey(TestWithKeyRecord, TestWithClient):
     def setUp(self):
         super().setUp()
         root_folder = models.FolderRecord(
-            owner=self.key_record,
-            name=models.ROOT_PATH,
-            full_path=models.ROOT_PATH
+            owner=self.key_record, name=models.ROOT_PATH, full_path=models.ROOT_PATH
         )
         self.session.add(root_folder)
         self.session.commit()
@@ -68,8 +66,9 @@ class TestWithRegisteredKey(TestWithKeyRecord, TestWithClient):
             case _:
                 raise ValueError("Method not recognized")
 
-    def authorized_request(self, method: RequestMethod, *args,
-                           headers: dict | None = None, **kwargs):
+    def authorized_request(
+        self, method: RequestMethod, *args, headers: dict | None = None, **kwargs
+    ):
         if headers is None:
             headers = {}
         headers = headers | {"key-id": self.key_record.id}
@@ -83,36 +82,30 @@ class TestWithRegisteredKey(TestWithKeyRecord, TestWithClient):
 def add_test_authentication(url):
     def decorator(cls: Type[TestWithRegisteredKey]):
         def test_unauthorized(self: TestWithRegisteredKey):
-            response = self.client.post(url, headers={
-                "Key-Id": self.key_record.id
-            })
+            response = self.client.post(url, headers={"Key-Id": self.key_record.id})
             self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
         def test_registration_required_false(self: TestWithRegisteredKey):
-            response = self.client.post(url, headers={
-                "Key-Id": self.key_record.id
-            })
+            response = self.client.post(url, headers={"Key-Id": self.key_record.id})
             self.assertFalse(response.json().get("registration_required"))
 
         def test_registration_required_true(self: TestWithRegisteredKey):
-            response = self.client.post(url, headers={
-                "Key-Id": "unknown_id"
-            })
+            response = self.client.post(url, headers={"Key-Id": "unknown_id"})
             self.assertTrue(response.json().get("registration_required"))
 
         def test_invalid_token(self: TestWithRegisteredKey):
-            response = self.client.post(url, headers={
-                "Key-Id": self.key_record.id
-            })
+            response = self.client.post(url, headers={"Key-Id": self.key_record.id})
             self.assertIsNotNone(response.json().get("token"))
-            response = self.client.post(url, headers={
-                "Key-Id": self.key_record.id,
-                "Signed-Token": "invalid_token"
-            })
+            response = self.client.post(
+                url,
+                headers={"Key-Id": self.key_record.id, "Signed-Token": "invalid_token"},
+            )
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         setattr(cls, "test_unauthorized", test_unauthorized)
-        setattr(cls, "test_registration_required_false", test_registration_required_false)
+        setattr(
+            cls, "test_registration_required_false", test_registration_required_false
+        )
         setattr(cls, "test_registration_required_true", test_registration_required_true)
         setattr(cls, "test_invallid_token", test_invalid_token)
         return cls
