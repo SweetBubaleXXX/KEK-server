@@ -107,13 +107,14 @@ def verify_token(
 ):
     with session_storage.lock:
         key_id = key.key_id.hex()
-        if signed_token is None or key_id not in session_storage:
-            token = session_storage.add(key_id)
-            raise client.AuthenticationRequired(token)
+        if key_id not in session_storage:
+            raise client.AuthenticationRequired(session_storage.add(key_id))
         token = session_storage[key_id]
+        if not signed_token:
+            raise client.AuthenticationRequired(token)
         try:
             decoded_token = base64.b64decode(signed_token)
             assert key.verify(decoded_token, str(token).encode())
         except (binascii.Error, VerificationError, AssertionError) as exc:
-            raise client.AuthenticationFailed() from exc
+            raise client.AuthenticationFailed(token) from exc
         session_storage.pop(key_id)

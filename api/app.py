@@ -12,6 +12,9 @@ app.add_exception_handler(
     client.AuthenticationRequired, handlers.authentication_required_handler
 )
 app.add_exception_handler(
+    client.AuthenticationFailed, handlers.authentication_required_handler
+)
+app.add_exception_handler(
     core.NoAvailableStorage, handlers.no_available_storage_handler
 )
 

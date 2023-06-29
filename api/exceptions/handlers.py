@@ -6,11 +6,11 @@ from ..schemas.authentication import DetailedTokenResponse
 from . import client, core
 
 
-def registration_required_handler(_: Request, exc: client.RegistrationRequired):
+def registration_required_handler(_: Request, exc: client.AuthenticationException):
     return JSONResponse(
         content=jsonable_encoder(
             DetailedTokenResponse(
-                token=exc.token, detail=exc.detail, registration_required=True
+                token=exc.session, detail=exc.detail, registration_required=True
             )
         ),
         status_code=exc.status_code,
@@ -18,10 +18,10 @@ def registration_required_handler(_: Request, exc: client.RegistrationRequired):
     )
 
 
-def authentication_required_handler(_: Request, exc: client.AuthenticationRequired):
+def authentication_required_handler(_: Request, exc: client.AuthenticationException):
     return JSONResponse(
         content=jsonable_encoder(
-            DetailedTokenResponse(token=exc.token, detail=exc.detail)
+            DetailedTokenResponse(token=exc.session, detail=exc.detail)
         ),
         status_code=exc.status_code,
         headers=exc.headers,

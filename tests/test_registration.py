@@ -51,6 +51,7 @@ class TestRegistration(TestWithDatabase, TestWithClient):
             headers={"Signed-Token": "invalid_token"},
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIsNotNone(response.json().get("token"))
 
     def test_token(self):
         key = PrivateKEK.generate()
@@ -90,5 +91,5 @@ class TestRegistration(TestWithDatabase, TestWithClient):
         return self.client.post(
             "/register",
             json=self.__public_key_info(key),
-            headers={"Signed-Token": signed_token},
+            headers={"Signed-Token": signed_token.decode()},
         )

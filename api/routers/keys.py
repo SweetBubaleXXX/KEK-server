@@ -9,7 +9,7 @@ from ..exceptions import client
 from ..schemas.authentication import PublicKeyInfo
 from ..schemas.base import StorageInfoResponse
 
-router = APIRouter(tags=["users"])
+router = APIRouter(tags=["keys"])
 
 
 @router.post("/register")
@@ -21,8 +21,8 @@ def register_key(
     try:
         key = PublicKEK.load(request.public_key.encode("ascii"))
         assert key.key_id.hex() == request.key_id
-    except (KeyLoadingError, AssertionError) as e:
-        raise client.AuthenticationFailed(detail="Could not load public key") from e
+    except (KeyLoadingError, AssertionError) as exc:
+        raise client.RegistrationFailed(detail="Could not load public key") from exc
     verify_token(signed_token, key, get_session())
     key_record = crud.get_key_by_id(db, request.key_id)
     if not key_record:
