@@ -3,8 +3,14 @@ from fastapi.requests import Request
 from sqlalchemy.orm import Session
 
 from ..db import crud, models
-from ..dependencies import (get_available_storage, get_db, get_file_record_required, get_path,
-                            validate_available_space, verify_token)
+from ..dependencies import (
+    get_available_storage,
+    get_db,
+    get_file_record_required,
+    get_path,
+    validate_available_space,
+    verify_token,
+)
 from ..exceptions import client
 from ..utils.storage import StorageClient
 

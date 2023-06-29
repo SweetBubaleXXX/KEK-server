@@ -18,10 +18,16 @@ get_session = create_session_dependency()
 get_db = create_get_db_dependency(SessionLocal)
 
 
-def get_key_record(key_id: str = Header(), db: Session = Depends(get_db)) -> models.KeyRecord:
+def get_key_record(
+    key_id: str = Header(),
+    db: Session = Depends(get_db),
+    session_storage: BaseSessionStorage = Depends(get_session)
+) -> models.KeyRecord:
     key_record = crud.get_key_by_id(db, key_id)
-    if key_record is None:
-        raise client.RegistrationRequired(key_id)
+    with session_storage.lock:
+        if key_record is None:
+            token = session_storage.add(key_id)
+            raise client.RegistrationRequired(token)
     return key_record
 
 
@@ -34,9 +40,11 @@ def get_path(path: str = Header()) -> str:
     return normalize(path)
 
 
-def get_folder_record(path: str = Depends(get_path),
-                      key_record: models.KeyRecord = Depends(get_key_record),
-                      db: Session = Depends(get_db)) -> models.FolderRecord | None:
+def get_folder_record(
+    path: str = Depends(get_path),
+    key_record: models.KeyRecord = Depends(get_key_record),
+    db: Session = Depends(get_db)
+) -> models.FolderRecord | None:
     return crud.find_folder(db, owner=key_record, full_path=normalize(path))
 
 
@@ -86,13 +94,15 @@ def validate_available_space(file_size: int = Header(),
 def verify_token(signed_token: str | None = Header(default=None),
                  key: PublicKEK = Depends(get_key),
                  session_storage: BaseSessionStorage = Depends(get_session)):
-    key_id = key.key_id.hex()
-    if signed_token is None or key_id not in session_storage:
-        raise client.AuthenticationRequired(key_id)
-    token = session_storage.get(key_id)
-    try:
-        decoded_token = base64.b64decode(signed_token)
-        assert key.verify(decoded_token, str(token).encode())
-    except (binascii.Error, VerificationError, AssertionError) as exc:
-        raise client.AuthenticationFailed() from exc
-    session_storage.pop(key_id)
+    with session_storage.lock:
+        key_id = key.key_id.hex()
+        if signed_token is None or key_id not in session_storage:
+            token = session_storage.add(key_id)
+            raise client.AuthenticationRequired(token)
+        token = session_storage[key_id]
+        try:
+            decoded_token = base64.b64decode(signed_token)
+            assert key.verify(decoded_token, str(token).encode())
+        except (binascii.Error, VerificationError, AssertionError) as exc:
+            raise client.AuthenticationFailed() from exc
+        session_storage.pop(key_id)

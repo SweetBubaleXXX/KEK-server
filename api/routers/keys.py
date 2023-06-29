@@ -37,5 +37,5 @@ def storage_info(
 ):
     return StorageInfoResponse(
         used=crud.calculate_used_storage(db, key_record),
-        limit=key_record.storage_size_limit
+        limit=key_record.storage_size_limit,
     )

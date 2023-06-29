@@ -18,7 +18,9 @@ class KeyRecord(Base):
     storage_size_limit = Column(Integer, default=0, nullable=False)
     is_activated = Column(Integer, default=0, nullable=False)
 
-    folders = relationship("FolderRecord", back_populates="owner", cascade="all, delete")
+    folders = relationship(
+        "FolderRecord", back_populates="owner", cascade="all, delete"
+    )
 
 
 class FolderRecord(Base):
@@ -31,13 +33,12 @@ class FolderRecord(Base):
     full_path = Column(String)
 
     owner = relationship("KeyRecord", back_populates="folders")
-    parent_folder = relationship("FolderRecord",
-                                 back_populates="child_folders",
-                                 remote_side=[id],
-                                 uselist=False)
-    child_folders = relationship("FolderRecord",
-                                 back_populates="parent_folder",
-                                 cascade="all, delete")
+    parent_folder = relationship(
+        "FolderRecord", back_populates="child_folders", remote_side=[id], uselist=False
+    )
+    child_folders = relationship(
+        "FolderRecord", back_populates="parent_folder", cascade="all, delete"
+    )
     files = relationship("FileRecord", back_populates="folder", cascade="all, delete")
 
     @hybrid_property
@@ -49,7 +50,7 @@ class FolderRecord(Base):
     def json(self) -> FolderContent:
         return FolderContent(
             files=map(lambda file: file.json(), self.files),
-            folders=map(lambda folder: folder.name, self.child_folders)
+            folders=map(lambda folder: folder.name, self.child_folders),
         )
 
 

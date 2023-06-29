@@ -8,4 +8,5 @@ def create_get_db_dependency(session_local: sessionmaker):
             yield db_session
         finally:
             db_session.close()
+
     return get_db

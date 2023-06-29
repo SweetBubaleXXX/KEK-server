@@ -1,4 +1,5 @@
 from typing import Any
+from uuid import UUID
 
 from fastapi import status
 from fastapi.exceptions import HTTPException
@@ -9,24 +10,24 @@ HEADERS = dict[str, Any] | None
 class RegistrationRequired(HTTPException):
     def __init__(
         self,
-        key_id: str,
+        token: UUID,
         status_code: int = status.HTTP_401_UNAUTHORIZED,
         detail="Public key registration required",
         headers: HEADERS = None,
     ):
-        self.key_id = key_id
+        self.token = token
         super().__init__(status_code, detail, headers)
 
 
 class AuthenticationRequired(HTTPException):
     def __init__(
         self,
-        key_id: str,
+        token: UUID,
         status_code: int = status.HTTP_401_UNAUTHORIZED,
         detail="Token authentication required",
         headers: HEADERS = None,
     ):
-        self.key_id = key_id
+        self.token = token
         super().__init__(status_code, detail, headers)
 
 
