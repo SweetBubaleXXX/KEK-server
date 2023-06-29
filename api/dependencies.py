@@ -26,7 +26,7 @@ def get_key_record(
     key_record = crud.get_key_by_id(db, key_id)
     with session_storage.lock:
         if key_record is None:
-            token = session_storage.add(key_id)
+            token = session_storage.get(key_id) or session_storage.add(key_id)
             raise client.RegistrationRequired(token)
     return key_record
 
@@ -117,4 +117,3 @@ def verify_token(
             assert key.verify(decoded_token, str(token).encode())
         except (binascii.Error, VerificationError, AssertionError) as exc:
             raise client.AuthenticationFailed(token) from exc
-        session_storage.pop(key_id)

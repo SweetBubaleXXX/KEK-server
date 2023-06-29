@@ -30,7 +30,7 @@ def register_key(
     crud.return_or_create_root_folder(db, key_record)
 
 
-@router.get("/storage")
+@router.get("/storage", dependencies=[Depends(verify_token)])
 def storage_info(
     key_record: models.KeyRecord = Depends(get_key_record),
     db: Session = Depends(get_db),
