@@ -33,11 +33,9 @@ class TestFiles(
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    @patch("aiohttp.ClientSession")
+    @patch("aiohttp.ClientSession.get")
     async def test_download_file(self, request_mock: AsyncMock):
-        storage_response = (
-            request_mock.return_value.__aenter__.return_value.get.return_value
-        )
+        storage_response = request_mock.return_value.__aenter__.return_value
         storage_response.status = 200
         storage_response.content.iter_any = self.stream_generator
         folder_record = crud.create_folders_recursively(

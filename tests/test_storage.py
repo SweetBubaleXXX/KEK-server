@@ -1,12 +1,11 @@
 from asyncio import sleep
-from typing import Callable, Generator
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, patch
 
-from fastapi import status
 from pydantic import BaseModel
 
 from api.db import crud
+from api.exceptions.core import StorageResponseError
 from api.schemas.storage_api import (
     StorageRequestHeaders,
     StorageSpaceResponse,
@@ -19,13 +18,11 @@ from tests.base_tests import TestWithRegisteredKey, TestWithStreamIteratorMixin
 class TestStorageClient(
     IsolatedAsyncioTestCase, TestWithRegisteredKey, TestWithStreamIteratorMixin
 ):
-    @patch("aiohttp.ClientSession")
-    async def test_download_file(self, request_mock: AsyncMock):
-        storage_response = (
-            request_mock.return_value.__aenter__.return_value.get.return_value
-        )
-        storage_response.status = 200
+    @patch("aiohttp.ClientSession.get")
+    async def test_download_file_response_error(self, request_mock: AsyncMock):
+        storage_response = request_mock.return_value.__aenter__.return_value
         storage_response.content.iter_any = self.stream_generator
+        storage_response.status = 500
         folder_record = crud.create_folders_recursively(
             self.session, self.key_record, "/folder"
         )
@@ -33,9 +30,9 @@ class TestStorageClient(
             self.session, folder_record, "filename", self.storage_record, 100
         )
         crud.update_record(self.session, file_record)
-
-        response = await StorageClient.download_file(file_record)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        with self.assertRaises(StorageResponseError):
+            stream_iterator = StorageClient.download_file(file_record)
+            await anext(aiter(stream_iterator))
 
     @patch("aiohttp.ClientSession.post")
     async def test_upload_existing_file(self, request_mock: AsyncMock):

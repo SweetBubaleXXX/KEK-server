@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Header
 from fastapi.requests import Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from ..db import crud, models
@@ -21,7 +22,7 @@ router = APIRouter(tags=["files"], dependencies=[Depends(verify_token)])
 async def download_file(
     file_record: models.FileRecord = Depends(get_file_record_required),
 ):
-    return await StorageClient.download_file(file_record)
+    return StreamingResponse(StorageClient.download_file(file_record))
 
 
 @router.post("/upload", dependencies=[Depends(validate_available_space)])

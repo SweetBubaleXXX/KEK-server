@@ -3,9 +3,7 @@ from typing import AsyncIterator, Type
 import aiohttp
 from aiohttp.client import ClientResponse
 from fastapi import status
-from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from starlette.background import BackgroundTask
 
 from ..db import crud, models
 from ..exceptions import client, core
@@ -131,22 +129,17 @@ class StorageClient:
         return self._storage
 
     @staticmethod
-    async def download_file(file_record: models.FileRecord) -> StreamingResponse:
+    async def download_file(file_record: models.FileRecord) -> AsyncIterator[bytes]:
         async with aiohttp.ClientSession(file_record.storage.url) as session:
-            res = await session.get(
+            async with session.get(
                 f"/file/{file_record.id}",
                 headers=storage_api.StorageRequestHeaders(
                     authorization=file_record.storage.token
                 ).dict(by_alias=True),
-            )
-            BaseHandler.validate_response(res)
-            try:
-                return StreamingResponse(
-                    res.content.iter_any(), background=BackgroundTask(res.close)
-                )
-            except aiohttp.ClientError:
-                res.close()
-                raise
+            ) as res:
+                BaseHandler.validate_response(res)
+                async for chunk in res.content.iter_any():
+                    yield chunk
 
     @staticmethod
     async def delete_folder(db: Session, folder_record: models.FolderRecord):
