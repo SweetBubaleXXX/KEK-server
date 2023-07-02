@@ -1,9 +1,19 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
+from .db.engine import Base, engine
 from .exceptions import client, core, handlers
 from .routers import files, folders, keys
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(engine)
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_exception_handler(
     client.RegistrationRequired, handlers.registration_required_handler
