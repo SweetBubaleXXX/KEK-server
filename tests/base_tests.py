@@ -1,6 +1,6 @@
 import unittest
 from base64 import b64encode
-from typing import Literal, Type
+from typing import AsyncGenerator, Literal, Type
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -41,30 +41,31 @@ class TestWithKeyRecord(TestWithDatabase):
         return key_record
 
 
-class TestWithClient:
+class TestWithClientMixin:
     client = TestClient(app)
 
 
-class TestWithRegisteredKey(TestWithKeyRecord, TestWithClient):
+class TestWithStreamIteratorMixin:
+    stream_content = "content"
+
+    async def stream_generator(self, *args, **kwargs) -> AsyncGenerator:
+        for chunk in self.stream_content:
+            yield chunk
+
+
+class TestWithRegisteredKey(TestWithKeyRecord, TestWithClientMixin):
     def setUp(self):
         super().setUp()
         root_folder = models.FolderRecord(
             owner=self.key_record, name=models.ROOT_PATH, full_path=models.ROOT_PATH
         )
+        self.storage_record = models.StorageRecord(
+            id="storage_id", url="http://storage", token="token"
+        )
         self.session.add(root_folder)
+        self.session.add(self.storage_record)
         self.session.commit()
         self.session.refresh(self.key_record)
-
-    def __request(self, method: RequestMethod, *args, **kwargs) -> Response:
-        match method.casefold():
-            case "get":
-                return self.client.get(*args, **kwargs)
-            case "post":
-                return self.client.post(*args, **kwargs)
-            case "delete":
-                return self.client.delete(*args, **kwargs)
-            case _:
-                raise ValueError("Method not recognized")
 
     def authorized_request(
         self, method: RequestMethod, *args, headers: dict | None = None, **kwargs
@@ -77,6 +78,17 @@ class TestWithRegisteredKey(TestWithKeyRecord, TestWithClient):
         signed_token = b64encode(self.key.sign(token.encode("utf-8")))
         headers = headers | {"Signed-Token": signed_token}
         return self.__request(method, *args, headers=headers, **kwargs)
+
+    def __request(self, method: RequestMethod, *args, **kwargs) -> Response:
+        match method.casefold():
+            case "get":
+                return self.client.get(*args, **kwargs)
+            case "post":
+                return self.client.post(*args, **kwargs)
+            case "delete":
+                return self.client.delete(*args, **kwargs)
+            case _:
+                raise ValueError("Method not recognized")
 
 
 def add_test_authentication(url):

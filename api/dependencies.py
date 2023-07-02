@@ -68,7 +68,7 @@ def get_file_record_required(
     file_record: models.FileRecord | None = Depends(get_file_record),
 ) -> models.FileRecord:
     if file_record is None:
-        raise client.NotExists(detail="File not found")
+        raise client.NotExists(status.HTTP_404_NOT_FOUND, detail="File not found")
     return file_record
 
 

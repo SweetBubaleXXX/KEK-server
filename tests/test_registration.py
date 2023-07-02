@@ -5,10 +5,10 @@ from httpx import Response
 from KEK.hybrid import PrivateKEK
 
 from api.db import models
-from tests.base_tests import TestWithClient, TestWithDatabase
+from tests.base_tests import TestWithClientMixin, TestWithDatabase
 
 
-class TestRegistration(TestWithDatabase, TestWithClient):
+class TestRegistration(TestWithDatabase, TestWithClientMixin):
     def test_empty_request(self):
         response = self.client.post("/register", json={})
         self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)

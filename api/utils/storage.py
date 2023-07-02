@@ -142,7 +142,7 @@ class StorageClient:
             BaseHandler.validate_response(res)
             try:
                 return StreamingResponse(
-                    res.content, background=BackgroundTask(res.close)
+                    res.content.iter_any(), background=BackgroundTask(res.close)
                 )
             except aiohttp.ClientError:
                 res.close()

@@ -1,30 +1,31 @@
 from asyncio import sleep
+from typing import Callable, Generator
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from fastapi import status
 from pydantic import BaseModel
 
-from api.db import crud, models
+from api.db import crud
 from api.schemas.storage_api import (
     StorageRequestHeaders,
     StorageSpaceResponse,
     UploadRequestHeaders,
 )
 from api.utils.storage import StorageClient
-from tests.base_tests import TestWithRegisteredKey
+from tests.base_tests import TestWithRegisteredKey, TestWithStreamIteratorMixin
 
 
-@pytest.mark.usefixtures("stream_generator")
-@pytest.mark.usefixtures("storage_record")
-class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
+class TestStorageClient(
+    IsolatedAsyncioTestCase, TestWithRegisteredKey, TestWithStreamIteratorMixin
+):
     @patch("aiohttp.ClientSession")
     async def test_download_file(self, request_mock: AsyncMock):
-        request_mock.return_value.__aenter__.return_value.get.return_value.status = 200
-        request_mock.return_value.__aenter__.return_value.get.return_value.content = (
-            self.stream_generator
+        storage_response = (
+            request_mock.return_value.__aenter__.return_value.get.return_value
         )
+        storage_response.status = 200
+        storage_response.content.iter_any = self.stream_generator
         folder_record = crud.create_folders_recursively(
             self.session, self.key_record, "/folder"
         )
@@ -57,9 +58,10 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
             self.session, self.key_record, self.storage_record
         )
         new_file_size = 200
+        stream_generator = self.stream_generator()
         await sleep(0.1)
         file_record = await storage_client.upload_file(
-            existing_file_record.full_path, new_file_size, self.stream_generator
+            existing_file_record.full_path, new_file_size, stream_generator
         )
         crud.update_record(self.session, self.storage_record)
         crud.update_record(self.session, file_record)
@@ -69,7 +71,7 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
         self.assertGreater(file_record.last_modified, prev_modified)
         request_mock.assert_called_once_with(
             f"/file/{file_record.id}",
-            data=self.stream_generator,
+            data=stream_generator,
             headers=UploadRequestHeaders(
                 authorization=self.storage_record.token, file_size=new_file_size
             ).dict(by_alias=True),
@@ -88,8 +90,9 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
             self.session, self.key_record, self.storage_record
         )
         file_size = 200
+        stream_generator = self.stream_generator()
         file_record = await storage_client.upload_file(
-            "/folder/filename", file_size, self.stream_generator
+            "/folder/filename", file_size, stream_generator
         )
         crud.update_record(self.session, self.storage_record)
         crud.update_record(self.session, file_record)
@@ -99,7 +102,7 @@ class TestStorageClient(IsolatedAsyncioTestCase, TestWithRegisteredKey):
         self.assertEqual(file_record.folder.id, folder_record.id)
         request_mock.assert_called_once_with(
             f"/file/{file_record.id}",
-            data=self.stream_generator,
+            data=stream_generator,
             headers=UploadRequestHeaders(
                 authorization=self.storage_record.token, file_size=file_size
             ).dict(by_alias=True),
