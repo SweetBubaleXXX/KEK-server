@@ -1,45 +1,85 @@
 from datetime import datetime
+from typing import Annotated, Optional
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import DateTime, ForeignKey
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import (
+    relationship,
+    mapped_column,
+    DeclarativeBase,
+    Mapped,
+    MappedAsDataclass,
+    registry,
+)
 
 from ..schemas.base import FileInfo
 from ..schemas.folders import FolderContent
 from ..utils.path_utils import ROOT_PATH
-from .engine import Base
 
 
+mapper_reg = registry()
+
+
+@mapper_reg.as_declarative_base()
+class Base:
+    pass
+
+
+strpk = Annotated[str, mapped_column(primary_key=True)]
+uuidpk = Annotated[
+    str, mapped_column(primary_key=True, default=lambda: str(uuid4()), init=False)
+]
+
+
+@mapper_reg.mapped_as_dataclass
 class KeyRecord(Base):
     __tablename__ = "public_keys"
-    id = Column(String, primary_key=True)
-    public_key = Column(String)
-    storage_size_limit = Column(Integer, default=0, nullable=False)
-    is_activated = Column(Integer, default=0, nullable=False)
+    id: Mapped[strpk]
+    public_key: Mapped[str]
+    storage_size_limit: Mapped[int] = mapped_column(default=0)
+    is_activated: Mapped[bool] = mapped_column(default=0)
 
-    folders = relationship(
-        "FolderRecord", back_populates="owner", cascade="all, delete"
+    folders: Mapped[list["FolderRecord"]] = relationship(
+        "FolderRecord",
+        back_populates="owner",
+        cascade="all, delete",
+        default_factory=list,
     )
 
 
+@mapper_reg.mapped_as_dataclass
 class FolderRecord(Base):
     __tablename__ = "folders"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid4()))
-    owner_id = Column(String, ForeignKey("public_keys.id"))
-    parent_id = Column(String, ForeignKey("folders.id"), nullable=True)
-    name = Column(String, default=ROOT_PATH)
-    full_path = Column(String)
+    id: Mapped[uuidpk]
+    owner_id: Mapped[str] = mapped_column(ForeignKey("public_keys.id"))
+    parent_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("folders.id"), default=None
+    )
+    name: Mapped[str] = mapped_column(default=ROOT_PATH)
+    full_path: Mapped[str]
 
-    owner = relationship("KeyRecord", back_populates="folders")
-    parent_folder = relationship(
-        "FolderRecord", back_populates="child_folders", remote_side=[id], uselist=False
+    owner: Mapped[KeyRecord] = relationship("KeyRecord", back_populates="folders")
+    parent_folder: Mapped[Optional["FolderRecord"]] = relationship(
+        "FolderRecord",
+        back_populates="child_folders",
+        remote_side=[id],
+        uselist=False,
+        default=None,
     )
-    child_folders = relationship(
-        "FolderRecord", back_populates="parent_folder", cascade="all, delete"
+    child_folders: Mapped[list["FolderRecord"]] = relationship(
+        "FolderRecord",
+        back_populates="parent_folder",
+        cascade="all, delete",
+        default_factory=list,
     )
-    files = relationship("FileRecord", back_populates="folder", cascade="all, delete")
+    files: Mapped[list["FileRecord"]] = relationship(
+        "FileRecord",
+        back_populates="folder",
+        cascade="all, delete",
+        default_factory=list,
+    )
 
     @hybrid_property
     def size(self) -> int:
@@ -54,19 +94,26 @@ class FolderRecord(Base):
         )
 
 
+@mapper_reg.mapped_as_dataclass
 class FileRecord(Base):
     __tablename__ = "files"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid4()))
-    folder_id = Column(String, ForeignKey("folders.id"))
-    storage_id = Column(String, ForeignKey("storages.id"))
-    filename = Column(String)
-    full_path = Column(String)
-    last_modified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    size = Column(Integer)
+    id: Mapped[uuidpk]
+    folder_id: Mapped[str] = mapped_column(ForeignKey("folders.id"))
+    storage_id: Mapped[str] = mapped_column(ForeignKey("storages.id"))
+    filename: Mapped[str]
+    full_path: Mapped[str]
+    last_modified: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+    size: Mapped[int]
 
-    folder = relationship("FolderRecord", back_populates="files", uselist=False)
-    storage = relationship("StorageRecord", back_populates="files", uselist=False)
+    folder: Mapped[FolderRecord] = relationship(
+        "FolderRecord", back_populates="files", uselist=False
+    )
+    storage: Mapped["StorageRecord"] = relationship(
+        "StorageRecord", back_populates="files", uselist=False
+    )
 
     @hybrid_property
     def owner(self) -> KeyRecord:
@@ -79,21 +126,24 @@ class FileRecord(Base):
             last_modified=self.last_modified,
         )
 
-    def update_timestamp(self):
+    def update_timestamp(self) -> None:
         self.last_modified = datetime.utcnow()
 
 
+@mapper_reg.mapped_as_dataclass
 class StorageRecord(Base):
     __tablename__ = "storages"
 
-    id = Column(String, primary_key=True)
-    url = Column(String)
-    token = Column(String)
-    used_space = Column(Integer, default=0)
-    capacity = Column(Integer)
-    priority = Column(Integer, default=1)
+    id: Mapped[strpk]
+    url: Mapped[str]
+    token: Mapped[str]
+    used_space: Mapped[int] = mapped_column(default=0)
+    capacity: Mapped[int]
+    priority: Mapped[int] = mapped_column(default=1)
 
-    files = relationship("FileRecord", back_populates="storage")
+    files: Mapped[FileRecord] = relationship(
+        "FileRecord", back_populates="storage", default_factory=list
+    )
 
     @hybrid_property
     def free(self) -> int:

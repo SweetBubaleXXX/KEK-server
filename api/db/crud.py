@@ -1,6 +1,6 @@
 import posixpath
 
-from sqlalchemy import func
+from sqlalchemy import func, select, exists
 from sqlalchemy.orm import Session
 
 from .. import config
@@ -114,7 +114,7 @@ def move_folder(
 
 
 def find_folder(db: Session, **filters) -> models.FolderRecord | None:
-    return db.query(models.FolderRecord).filter_by(**filters).first()
+    return db.scalars(select(models.FolderRecord).filter_by(**filters)).first()
 
 
 def folder_exists(db: Session, **filters) -> bool:
@@ -126,6 +126,12 @@ def folder_exists(db: Session, **filters) -> bool:
 def find_file(
     db: Session, owner: models.KeyRecord, **filters
 ) -> models.FileRecord | None:
+    return db.scalars(
+        select(models.FileRecord)
+        .filter_by(**filters)
+        .join(models.FileRecord.folder)
+        .where(models.FileRecord.folder.owner == owner)
+    ).first()
     return (
         db.query(models.FileRecord)
         .filter_by(**filters)
