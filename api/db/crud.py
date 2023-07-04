@@ -1,7 +1,7 @@
 import posixpath
 
-from sqlalchemy import func, select, exists
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import config
 from ..utils.path_utils import split_head_and_tail, split_into_components
@@ -25,19 +25,21 @@ def __update_child_full_paths(folder: models.FolderRecord):
         __update_child_full_paths(child_folder)
 
 
-def update_record(db: Session, record: models.Record) -> models.Record:
+async def update_record(db: AsyncSession, record: models.Record) -> models.Record:
     db.add(record)
-    db.commit()
-    db.refresh(record)
+    await db.commit()
+    await db.refresh(record)
     return record
 
 
-def get_key_by_id(db: Session, key_id: str) -> models.KeyRecord | None:
-    return db.query(models.KeyRecord).filter_by(id=key_id).first()
+async def get_key_by_id(db: AsyncSession, key_id: str) -> models.KeyRecord | None:
+    return (
+        await db.scalars(select(models.KeyRecord).filter(models.KeyRecord.id == key_id))
+    ).first()
 
 
-def add_key(
-    db: Session,
+async def add_key(
+    db: AsyncSession,
     key_id: str,
     public_key: str,
     storage_limit: int | None = None,
@@ -47,29 +49,32 @@ def add_key(
         id=key_id,
         public_key=public_key,
         storage_size_limit=storage_limit or config.settings.user_storage_size_limit,
-        is_activated=int(is_activated or config.settings.user_is_activated_default),
+        is_activated=is_activated or config.settings.user_is_activated_default,
     )
-    return update_record(db, key_record)
+    return await update_record(db, key_record)
 
 
-def return_or_create_root_folder(
-    db: Session, key_record: models.KeyRecord
+async def return_or_create_root_folder(
+    db: AsyncSession, key_record: models.KeyRecord
 ) -> models.FolderRecord:
     existing_folder_record = (
-        db.query(models.FolderRecord)
-        .filter_by(owner=key_record, full_path=models.ROOT_PATH)
-        .first()
-    )
+        await db.scalars(
+            select(models.FolderRecord).filter(
+                models.FolderRecord.owner == key_record,
+                models.FolderRecord.full_path == models.ROOT_PATH,
+            )
+        )
+    ).first()
     if existing_folder_record:
         return existing_folder_record
     folder_record = models.FolderRecord(
         owner=key_record, name=models.ROOT_PATH, full_path=models.ROOT_PATH
     )
-    return update_record(db, folder_record)
+    return await update_record(db, folder_record)
 
 
-def create_child_folder(
-    db: Session, parent_folder: models.FolderRecord, name: str
+async def create_child_folder(
+    db: AsyncSession, parent_folder: models.FolderRecord, name: str
 ) -> models.FolderRecord:
     child_folder = models.FolderRecord(
         owner=parent_folder.owner,
@@ -77,92 +82,91 @@ def create_child_folder(
         name=name,
         full_path=posixpath.join(parent_folder.full_path, name),
     )
-    return update_record(db, child_folder)
+    return await update_record(db, child_folder)
 
 
-def create_folders_recursively(
-    db: Session, key_record: models.KeyRecord, folder_path: str
+async def create_folders_recursively(
+    db: AsyncSession, key_record: models.KeyRecord, folder_path: str
 ) -> models.FolderRecord:
-    current_folder = return_or_create_root_folder(db, key_record)
+    current_folder = await return_or_create_root_folder(db, key_record)
     path_components = split_into_components(folder_path)
     for folder_name in path_components:
         existing_child = __get_child_folder(current_folder, folder_name)
         if existing_child:
             current_folder = existing_child
             continue
-        current_folder = create_child_folder(db, current_folder, folder_name)
+        current_folder = await create_child_folder(db, current_folder, folder_name)
     return current_folder
 
 
-def rename_folder(
-    db: Session, folder: models.FolderRecord, new_name: str
+async def rename_folder(
+    db: AsyncSession, folder: models.FolderRecord, new_name: str
 ) -> models.FolderRecord:
     folder.name = new_name
     parent_path, _ = split_head_and_tail(folder.full_path)
     folder.full_path = posixpath.join(parent_path, new_name)
     __update_child_full_paths(folder)
-    return update_record(db, folder)
+    return await update_record(db, folder)
 
 
-def move_folder(
-    db: Session, folder: models.FolderRecord, destination_folder: models.FolderRecord
+async def move_folder(
+    db: AsyncSession,
+    folder: models.FolderRecord,
+    destination_folder: models.FolderRecord,
 ) -> models.FolderRecord:
     folder.parent_folder = destination_folder
     folder.full_path = posixpath.join(destination_folder.full_path, folder.name)
     __update_child_full_paths(folder)
-    return update_record(db, folder)
+    return await update_record(db, folder)
 
 
-def find_folder(db: Session, **filters) -> models.FolderRecord | None:
-    return db.scalars(select(models.FolderRecord).filter_by(**filters)).first()
+async def find_folder(db: AsyncSession, **filters) -> models.FolderRecord | None:
+    return (await db.scalars(select(models.FolderRecord).filter_by(**filters))).first()
 
 
-def folder_exists(db: Session, **filters) -> bool:
+async def folder_exists(db: AsyncSession, **filters) -> bool:
     return bool(
-        db.query(db.query(models.FolderRecord).filter_by(**filters).exists()).scalar()
+        (await db.scalars(select(models.FolderRecord).filter_by(**filters))).first()
     )
 
 
-def find_file(
-    db: Session, owner: models.KeyRecord, **filters
+async def find_file(
+    db: AsyncSession, owner: models.KeyRecord, **filters
 ) -> models.FileRecord | None:
-    return db.scalars(
-        select(models.FileRecord)
-        .filter_by(**filters)
-        .join(models.FileRecord.folder)
-        .where(models.FileRecord.folder.owner == owner)
-    ).first()
     return (
-        db.query(models.FileRecord)
-        .filter_by(**filters)
-        .join(models.FileRecord.folder)
-        .filter_by(owner=owner)
-        .first()
-    )
-
-
-def file_exists(db: Session, owner: models.KeyRecord, **filters) -> bool:
-    return bool(
-        db.query(
-            db.query(models.FileRecord)
+        await db.scalars(
+            select(models.FileRecord)
             .filter_by(**filters)
             .join(models.FileRecord.folder)
-            .filter_by(owner=owner)
-            .exists()
-        ).scalar()
+            .where(models.FileRecord.folder.owner == owner)
+        )
+    ).first()
+
+
+async def file_exists(db: AsyncSession, owner: models.KeyRecord, **filters) -> bool:
+    return bool(
+        (
+            await db.scalars(
+                select(models.FileRecord)
+                .filter_by(**filters)
+                .filter(models.FileRecord.owner == owner)
+            )
+        ).first()
     )
 
 
-def item_in_folder(db: Session, name: str, folder: models.FolderRecord) -> bool:
-    existing_folder_found = folder_exists(db, parent_folder=folder, name=name)
-    existing_file_found = file_exists(
+async def item_in_folder(
+    db: AsyncSession, name: str, folder: models.FolderRecord
+) -> bool:
+    existing_folder_found = await folder_exists(db, parent_folder=folder, name=name)
+    existing_file_found = await file_exists(
         db, owner=folder.owner, folder=folder, filename=name
     )
     return existing_file_found or existing_folder_found
 
 
-def create_file_record(
-    db: Session,
+async def create_file_record(
+    db: AsyncSession,
     folder: models.FolderRecord,
     filename: str,
     storage: models.StorageRecord,
@@ -175,17 +179,22 @@ def create_file_record(
         full_path=posixpath.join(folder.full_path, filename),
         size=size,
     )
-    return update_record(db, file_record)
+    return await update_record(db, file_record)
 
 
-def get_storage(db: Session, storage_id: str) -> models.StorageRecord | None:
-    return db.query(models.StorageRecord).filter_by(id=storage_id).first()
-
-
-def calculate_used_storage(db: Session, key_record: models.KeyRecord) -> int:
+async def get_storage(db: AsyncSession, storage_id: str) -> models.StorageRecord | None:
     return (
-        db.query(func.sum(models.FileRecord.size))
-        .join(models.FileRecord.folder)
-        .filter_by(owner=key_record)
-        .scalar()
+        await db.scalars(
+            select(models.StorageRecord).filter(models.StorageRecord.id == storage_id)
+        )
+    ).first()
+
+
+async def calculate_used_storage(db: AsyncSession, key_record: models.KeyRecord) -> int:
+    return (
+        await db.scalar(
+            select(func.sum(models.FileRecord.size))
+            .join(models.FileRecord.folder)
+            .where(models.FileRecord.owner == key_record)
+        )
     ) or 0

@@ -1,16 +1,16 @@
 from datetime import datetime
-from typing import Annotated, Optional
+from typing import Annotated, Optional, TypeVar
 from uuid import uuid4
 
 from sqlalchemy import DateTime, ForeignKey
+from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
-    relationship,
-    mapped_column,
     DeclarativeBase,
     Mapped,
     MappedAsDataclass,
-    registry,
+    mapped_column,
+    relationship,
 )
 
 from ..schemas.base import FileInfo
@@ -18,21 +18,17 @@ from ..schemas.folders import FolderContent
 from ..utils.path_utils import ROOT_PATH
 
 
-mapper_reg = registry()
-
-
-@mapper_reg.as_declarative_base()
-class Base:
+class Base(AsyncAttrs, MappedAsDataclass, DeclarativeBase):
     pass
 
 
 strpk = Annotated[str, mapped_column(primary_key=True)]
 uuidpk = Annotated[
-    str, mapped_column(primary_key=True, default=lambda: str(uuid4()), init=False)
+    str,
+    mapped_column(primary_key=True, default=lambda: str(uuid4())),
 ]
 
 
-@mapper_reg.mapped_as_dataclass
 class KeyRecord(Base):
     __tablename__ = "public_keys"
     id: Mapped[strpk]
@@ -48,19 +44,20 @@ class KeyRecord(Base):
     )
 
 
-@mapper_reg.mapped_as_dataclass
 class FolderRecord(Base):
     __tablename__ = "folders"
 
-    id: Mapped[uuidpk]
-    owner_id: Mapped[str] = mapped_column(ForeignKey("public_keys.id"))
+    id: Mapped[uuidpk] = mapped_column(init=False)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("public_keys.id"), default=None)
     parent_id: Mapped[Optional[str]] = mapped_column(
         ForeignKey("folders.id"), default=None
     )
     name: Mapped[str] = mapped_column(default=ROOT_PATH)
-    full_path: Mapped[str]
+    full_path: Mapped[str] = mapped_column(default=ROOT_PATH)
 
-    owner: Mapped[KeyRecord] = relationship("KeyRecord", back_populates="folders")
+    owner: Mapped[KeyRecord] = relationship(
+        "KeyRecord", back_populates="folders", default=None
+    )
     parent_folder: Mapped[Optional["FolderRecord"]] = relationship(
         "FolderRecord",
         back_populates="child_folders",
@@ -94,25 +91,24 @@ class FolderRecord(Base):
         )
 
 
-@mapper_reg.mapped_as_dataclass
 class FileRecord(Base):
     __tablename__ = "files"
 
-    id: Mapped[uuidpk]
-    folder_id: Mapped[str] = mapped_column(ForeignKey("folders.id"))
-    storage_id: Mapped[str] = mapped_column(ForeignKey("storages.id"))
     filename: Mapped[str]
     full_path: Mapped[str]
-    last_modified: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
     size: Mapped[int]
+    id: Mapped[uuidpk] = mapped_column(init=False)
+    folder_id: Mapped[str] = mapped_column(ForeignKey("folders.id"), default=None)
+    storage_id: Mapped[str] = mapped_column(ForeignKey("storages.id"), default=None)
+    last_modified: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, init=False
+    )
 
     folder: Mapped[FolderRecord] = relationship(
-        "FolderRecord", back_populates="files", uselist=False
+        "FolderRecord", back_populates="files", uselist=False, default=None
     )
     storage: Mapped["StorageRecord"] = relationship(
-        "StorageRecord", back_populates="files", uselist=False
+        "StorageRecord", back_populates="files", uselist=False, default=None
     )
 
     @hybrid_property
@@ -130,7 +126,6 @@ class FileRecord(Base):
         self.last_modified = datetime.utcnow()
 
 
-@mapper_reg.mapped_as_dataclass
 class StorageRecord(Base):
     __tablename__ = "storages"
 
@@ -138,7 +133,7 @@ class StorageRecord(Base):
     url: Mapped[str]
     token: Mapped[str]
     used_space: Mapped[int] = mapped_column(default=0)
-    capacity: Mapped[int]
+    capacity: Mapped[int] = mapped_column(default=0)
     priority: Mapped[int] = mapped_column(default=1)
 
     files: Mapped[FileRecord] = relationship(
@@ -150,4 +145,4 @@ class StorageRecord(Base):
         return self.capacity - self.used_space
 
 
-Record = KeyRecord | FolderRecord | FileRecord | StorageRecord
+Record = TypeVar("Record", KeyRecord, FolderRecord, FileRecord, StorageRecord)

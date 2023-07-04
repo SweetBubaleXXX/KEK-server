@@ -4,26 +4,27 @@ import binascii
 from fastapi import Depends, Header, status
 from KEK.exceptions import VerificationError
 from KEK.hybrid import PublicKEK
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .db import crud, models
 from .db.dependency import create_get_db_dependency
-from .db.engine import SessionLocal
+from .db.engine import async_session
 from .exceptions import client, core
 from .utils.path_utils import normalize
 from .utils.sessions import BaseSessionStorage, create_session_dependency
 from .utils.storage import StorageClient
 
 get_session = create_session_dependency()
-get_db = create_get_db_dependency(SessionLocal)
+get_db = create_get_db_dependency(async_session)
 
 
-def get_key_record(
+async def get_key_record(
     key_id: str = Header(),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     session_storage: BaseSessionStorage = Depends(get_session),
 ) -> models.KeyRecord:
-    key_record = crud.get_key_by_id(db, key_id)
+    key_record = await crud.get_key_by_id(db, key_id)
     with session_storage.lock:
         if key_record is None:
             token = session_storage.get(key_id) or session_storage.add(key_id)
@@ -40,12 +41,12 @@ def get_path(path: str = Header()) -> str:
     return normalize(path)
 
 
-def get_folder_record(
+async def get_folder_record(
     path: str = Depends(get_path),
     key_record: models.KeyRecord = Depends(get_key_record),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ) -> models.FolderRecord | None:
-    return crud.find_folder(db, owner=key_record, full_path=normalize(path))
+    return await crud.find_folder(db, owner=key_record, full_path=normalize(path))
 
 
 def get_folder_record_required(
@@ -56,12 +57,12 @@ def get_folder_record_required(
     return folder_record
 
 
-def get_file_record(
+async def get_file_record(
     path: str = Depends(get_path),
     key_record: models.KeyRecord = Depends(get_key_record),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ) -> models.FileRecord | None:
-    return crud.find_file(db, owner=key_record, full_path=normalize(path))
+    return await crud.find_file(db, owner=key_record, full_path=normalize(path))
 
 
 def get_file_record_required(
@@ -72,28 +73,30 @@ def get_file_record_required(
     return file_record
 
 
-def get_available_storage(
+async def get_available_storage(
     file_size: int = Header(),
     key_record: models.KeyRecord = Depends(get_key_record),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ) -> StorageClient:
     storages = (
-        db.query(models.StorageRecord)
-        .order_by(models.StorageRecord.priority, models.StorageRecord.free)
-        .all()
-    )
+        await db.scalars(
+            select(models.StorageRecord).order_by(
+                models.StorageRecord.priority, models.StorageRecord.free
+            )
+        )
+    ).all()
     for storage in storages:
         if file_size <= storage.free:
             return StorageClient(db, key_record, storage)
     raise core.NoAvailableStorage()
 
 
-def validate_available_space(
+async def validate_available_space(
     file_size: int = Header(),
     key_record: models.KeyRecord = Depends(get_key_record),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    available_space = key_record.storage_size_limit - crud.calculate_used_storage(
+    available_space = key_record.storage_size_limit - await crud.calculate_used_storage(
         db, key_record
     )
     if file_size > available_space:

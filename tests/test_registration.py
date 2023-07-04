@@ -1,5 +1,6 @@
 from base64 import b64encode
 
+from sqlalchemy import select
 from fastapi import status
 from httpx import Response
 from KEK.hybrid import PrivateKEK
@@ -58,24 +59,29 @@ class TestRegistration(TestWithDatabase, TestWithClientMixin):
         response = self.__register_key(key)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_key_in_db(self):
+    async def test_key_in_db(self):
         key = PrivateKEK.generate()
         self.__register_key(key)
         key_record = (
-            self.session.query(models.KeyRecord).filter_by(id=key.key_id.hex()).first()
-        )
+            await self.session.scalars(
+                select(models.KeyRecord).filter(models.KeyRecord.id == key.key_id.hex())
+            )
+        ).first()
         self.assertEqual(
             key_record.public_key, key.public_key.serialize().decode("utf-8")
         )
 
-    def test_root_folder_creation(self):
+    async def test_root_folder_creation(self):
         key = PrivateKEK.generate()
         self.__register_key(key)
         root_folder = (
-            self.session.query(models.FolderRecord)
-            .filter_by(owner_id=key.key_id.hex(), full_path=models.ROOT_PATH)
-            .first()
-        )
+            await self.session.scalars(
+                select(models.FolderRecord).filter(
+                    models.FolderRecord.owner_id == key.key_id.hex(),
+                    models.FolderRecord.full_path == models.ROOT_PATH,
+                )
+            )
+        ).first()
         self.assertEqual(root_folder.owner.id, key.key_id.hex())
 
     def __public_key_info(self, key: PrivateKEK) -> dict[str, str]:

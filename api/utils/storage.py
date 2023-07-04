@@ -3,7 +3,7 @@ from typing import AsyncIterator, Type
 import aiohttp
 from aiohttp.client import ClientResponse
 from fastapi import status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import crud, models
 from ..exceptions import client, core
@@ -13,7 +13,10 @@ from .path_utils import split_head_and_tail
 
 class BaseHandler:
     def __init__(
-        self, db: Session, key_record: models.KeyRecord, storage: models.StorageRecord
+        self,
+        db: AsyncSession,
+        key_record: models.KeyRecord,
+        storage: models.StorageRecord,
     ):
         self._session = db
         self._client = key_record
@@ -54,7 +57,7 @@ class BaseUploadFileHandler(BaseHandler):
                 f"/file/{file_record.id}",
                 data=stream,
                 headers=storage_api.UploadRequestHeaders(
-                    authorization=self._storage.token, file_size=file_record.size
+                    authorization=self._storage.token, file_size=str(file_record.size)
                 ).dict(by_alias=True),
             ) as res:
                 await self.parse_storage_space(res)
@@ -82,7 +85,7 @@ class UploadExistingFileRecordHandler(BaseUploadFileHandler):
     async def __delete_from_old_storage(
         self, file_record: models.FileRecord, old_storage_id: str
     ):
-        old_storage = crud.get_storage(self._session, old_storage_id)
+        old_storage = await crud.get_storage(self._session, old_storage_id)
         if old_storage is None:
             raise core.StorageNotFound()
         delete_handler = DeleteFileHandler(self._session, self._client, old_storage)
@@ -95,12 +98,12 @@ class UploadNewFileRecordHandler(BaseUploadFileHandler):
         self, full_path: str, file_size: int, stream: AsyncIterator[bytes]
     ) -> models.FileRecord:
         folder_name, filename = split_head_and_tail(full_path)
-        folder_record = crud.find_folder(
+        folder_record = await crud.find_folder(
             self._session, owner=self._client, full_path=folder_name
         )
         if folder_record is None:
             raise client.NotExists(detail="Parent folder doesn't exist")
-        file_record = crud.create_file_record(
+        file_record = await crud.create_file_record(
             self._session, folder_record, filename, self._storage, file_size
         )
         await self.upload_stream(stream, file_record)
@@ -110,14 +113,17 @@ class UploadNewFileRecordHandler(BaseUploadFileHandler):
 
 class StorageClient:
     def __init__(
-        self, db: Session, key_record: models.KeyRecord, storage: models.StorageRecord
+        self,
+        db: AsyncSession,
+        key_record: models.KeyRecord,
+        storage: models.StorageRecord,
     ):
         self._session = db
         self._client = key_record
         self._storage = storage
 
     @property
-    def session(self) -> Session:
+    def session(self) -> AsyncSession:
         return self._session
 
     @property
@@ -142,26 +148,20 @@ class StorageClient:
                     yield chunk
 
     @staticmethod
-    async def delete_folder(db: Session, folder_record: models.FolderRecord):
+    async def delete_folder(db: AsyncSession, folder_record: models.FolderRecord):
         for child_folder in folder_record.child_folders:
             await StorageClient.delete_folder(db, child_folder)
         for file in folder_record.files:
             storage_client = StorageClient(db, folder_record.owner, file.storage)
             await storage_client.delete_file(file)
-        db.delete(folder_record)
-        db.commit()
+        await db.delete(folder_record)
+        await db.commit()
 
     async def upload_file(
         self, full_path: str, file_size: int, stream: AsyncIterator[bytes]
     ):
-        file_record = (
-            self._session.query(models.FileRecord)
-            .filter_by(full_path=full_path)
-            .join(models.FileRecord.folder)
-            .filter_by(
-                owner=self._client,
-            )
-            .first()
+        file_record = await crud.find_file(
+            self._session, self._client, full_path=full_path
         )
         if file_record is None:
             file_record = await self.__create_handler(UploadNewFileRecordHandler)(
@@ -176,7 +176,7 @@ class StorageClient:
 
     async def delete_file(self, file_record: models.FileRecord):
         await self.__create_handler(DeleteFileHandler)(file_record)
-        self._session.delete(file_record)
+        await self._session.delete(file_record)
 
     def __create_handler(self, handler_cls: Type[BaseHandler]):
         return handler_cls(self._session, self._client, self._storage)

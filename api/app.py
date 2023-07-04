@@ -2,14 +2,16 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from .db.engine import Base, engine
+from .db.engine import engine
+from .db.models import Base
 from .exceptions import client, core, handlers
 from .routers import files, folders, keys
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
 
 

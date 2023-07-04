@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Header
 from KEK.exceptions import KeyLoadingError
 from KEK.hybrid import PublicKEK
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import crud, models
 from ..dependencies import get_db, get_key_record, get_session, verify_token
@@ -13,10 +13,10 @@ router = APIRouter(tags=["keys"])
 
 
 @router.post("/register")
-def register_key(
+async def register_key(
     request: PublicKeyInfo,
     signed_token: str | None = Header(default=None),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     try:
         key = PublicKEK.load(request.public_key.encode("ascii"))
@@ -24,18 +24,18 @@ def register_key(
     except (KeyLoadingError, AssertionError) as exc:
         raise client.RegistrationFailed(detail="Could not load public key") from exc
     verify_token(signed_token, key, get_session())
-    key_record = crud.get_key_by_id(db, request.key_id)
+    key_record = await crud.get_key_by_id(db, request.key_id)
     if not key_record:
-        key_record = crud.add_key(db, request.key_id, request.public_key)
-    crud.return_or_create_root_folder(db, key_record)
+        key_record = await crud.add_key(db, request.key_id, request.public_key)
+    await crud.return_or_create_root_folder(db, key_record)
 
 
 @router.get("/storage", dependencies=[Depends(verify_token)])
-def storage_info(
+async def storage_info(
     key_record: models.KeyRecord = Depends(get_key_record),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     return StorageInfoResponse(
-        used=crud.calculate_used_storage(db, key_record),
+        used=await crud.calculate_used_storage(db, key_record),
         limit=key_record.storage_size_limit,
     )

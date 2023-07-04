@@ -1,12 +1,9 @@
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 
-def create_get_db_dependency(session_local: sessionmaker):
-    def get_db():
-        db_session = session_local()
-        try:
-            yield db_session
-        finally:
-            db_session.close()
+def create_get_db_dependency(async_session: async_sessionmaker[AsyncSession]):
+    async def get_db():
+        async with async_session() as session:
+            yield session
 
     return get_db

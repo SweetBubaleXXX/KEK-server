@@ -14,30 +14,32 @@ from tests.setup_test_env import setup_config, setup_database, teardown_database
 RequestMethod = Literal["get", "post", "delete"]
 
 
-class TestWithDatabase(unittest.TestCase):
-    def setUp(self):
+class TestWithDatabase(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
         self.settings = setup_config()
-        self.session = setup_database()
 
-    def tearDown(self):
-        teardown_database(self.session)
+    async def asyncSetUp(self):
+        self.session = await setup_database()
+
+    async def asyncTearDown(self):
+        await teardown_database(self.session)
 
 
 class TestWithKeyRecord(TestWithDatabase):
     key = PrivateKEK.generate()
 
-    def setUp(self):
-        super().setUp()
-        self.key_record = self.__add_key_to_db()
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        self.key_record = await self.__add_key_to_db()
 
-    def __add_key_to_db(self) -> models.KeyRecord:
+    async def __add_key_to_db(self) -> models.KeyRecord:
         key_record = models.KeyRecord(
             id=self.key.key_id.hex(),
             public_key=self.key.public_key.serialize().decode("utf-8"),
         )
         self.session.add(key_record)
-        self.session.commit()
-        self.session.refresh(key_record)
+        await self.session.commit()
+        await self.session.refresh(key_record)
         return key_record
 
 
@@ -54,8 +56,8 @@ class TestWithStreamIteratorMixin:
 
 
 class TestWithRegisteredKey(TestWithKeyRecord, TestWithClientMixin):
-    def setUp(self):
-        super().setUp()
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
         root_folder = models.FolderRecord(
             owner=self.key_record, name=models.ROOT_PATH, full_path=models.ROOT_PATH
         )
@@ -64,8 +66,8 @@ class TestWithRegisteredKey(TestWithKeyRecord, TestWithClientMixin):
         )
         self.session.add(root_folder)
         self.session.add(self.storage_record)
-        self.session.commit()
-        self.session.refresh(self.key_record)
+        await self.session.commit()
+        await self.session.refresh(self.key_record)
 
     def authorized_request(
         self, method: RequestMethod, *args, headers: dict | None = None, **kwargs

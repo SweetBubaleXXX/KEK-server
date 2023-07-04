@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Header
 from fastapi.requests import Request
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import crud, models
 from ..dependencies import (
@@ -31,19 +31,19 @@ async def upload_file(
     path: str = Depends(get_path),
     file_size: int = Header(),
     storage_client: StorageClient = Depends(get_available_storage),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    if crud.folder_exists(db, owner=storage_client.client, full_path=path):
+    if await crud.folder_exists(db, owner=storage_client.client, full_path=path):
         raise client.AlreadyExists(detail="Folder with this name already exists")
     file_record = await storage_client.upload_file(path, file_size, request.stream())
-    crud.update_record(db, file_record)
+    await crud.update_record(db, file_record)
 
 
 @router.delete("/delete")
 async def delete_file(
     file_record: models.FileRecord = Depends(get_file_record_required),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     storage_client = StorageClient(db, file_record.owner, file_record.storage)
     await storage_client.delete_file(file_record)
-    db.commit()
+    await db.commit()
