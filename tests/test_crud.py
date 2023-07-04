@@ -29,7 +29,7 @@ class TestCrud(TestWithKeyRecord):
         folder_record = models.FolderRecord(
             owner=self.key_record, name="folder", full_path="folder"
         )
-        storage_record = models.StorageRecord(id="id")
+        storage_record = models.StorageRecord(id="id", url="url", token="token")
         file_record = await crud.create_file_record(
             self.session, folder_record, "filename", storage_record, 0
         )
@@ -70,7 +70,9 @@ class TestCrud(TestWithKeyRecord):
         await crud.return_or_create_root_folder(self.session, self.key_record)
         root_folder_count = (
             await self.session.scalar(
-                select(func.count(models.FolderRecord)).filter(
+                select(func.count())
+                .select_from(models.FolderRecord)
+                .filter(
                     models.FolderRecord.owner_id == self.key_record.id,
                     models.FolderRecord.full_path == models.ROOT_PATH,
                 )
@@ -181,7 +183,14 @@ class TestCrud(TestWithKeyRecord):
                 full_path=f"parent_folder/{child_folder_name}",
             )
             for i in range(10):
-                child_folder.files.append(models.FileRecord(size=i))
+                filename = f"file_{i}"
+                child_folder.files.append(
+                    models.FileRecord(
+                        filename=filename,
+                        full_path=f"{child_folder.full_path}/{filename}",
+                        size=i,
+                    )
+                )
                 expected_size += i
             parent_folder.child_folders.append(child_folder)
         self.session.add(parent_folder)
@@ -193,7 +202,7 @@ class TestCrud(TestWithKeyRecord):
         folder_record = models.FolderRecord(
             owner=self.key_record, name="folder", full_path="folder"
         )
-        storage_record = models.StorageRecord(id="id")
+        storage_record = models.StorageRecord(id="id", url="url", token="token")
         file_record = await crud.create_file_record(
             self.session, folder_record, "filename", storage_record, 0
         )
@@ -203,7 +212,14 @@ class TestCrud(TestWithKeyRecord):
         folder_record = models.FolderRecord(owner=self.key_record)
         size_range = range(1, 10)
         for size in size_range:
-            self.session.add(models.FileRecord(folder=folder_record, size=size))
+            self.session.add(
+                models.FileRecord(
+                    folder=folder_record,
+                    filename=str(size),
+                    full_path=f"/{size}",
+                    size=size,
+                )
+            )
         await self.session.commit()
         await self.session.refresh(folder_record)
         calculated_size = await crud.calculate_used_storage(

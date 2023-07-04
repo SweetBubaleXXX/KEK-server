@@ -33,9 +33,7 @@ async def update_record(db: AsyncSession, record: models.Record) -> models.Recor
 
 
 async def get_key_by_id(db: AsyncSession, key_id: str) -> models.KeyRecord | None:
-    return (
-        await db.scalars(select(models.KeyRecord).filter(models.KeyRecord.id == key_id))
-    ).first()
+    return await db.get(models.KeyRecord, key_id)
 
 
 async def add_key(
