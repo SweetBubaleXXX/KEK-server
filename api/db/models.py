@@ -79,15 +79,19 @@ class FolderRecord(Base):
     )
 
     @hybrid_property
-    def size(self) -> int:
-        files_size = sum(file.size for file in self.files)
-        child_folders_size = sum(folder.size for folder in self.child_folders)
+    async def size(self) -> int:
+        files_size = sum(file.size for file in await self.awaitable_attrs.files)
+        child_folders_size = sum(
+            folder.size for folder in await self.awaitable_attrs.child_folders
+        )
         return files_size + child_folders_size
 
-    def json(self) -> FolderContent:
+    async def json(self) -> FolderContent:
         return FolderContent(
-            files=map(lambda file: file.json(), self.files),
-            folders=map(lambda folder: folder.name, self.child_folders),
+            files=map(lambda file: file.json(), await self.awaitable_attrs.files),
+            folders=map(
+                lambda folder: folder.name, await self.awaitable_attrs.child_folders
+            ),
         )
 
 
@@ -112,8 +116,9 @@ class FileRecord(Base):
     )
 
     @hybrid_property
-    def owner(self) -> KeyRecord:
-        return self.folder.owner
+    async def owner(self) -> KeyRecord:
+        folder = await self.awaitable_attrs.folder
+        return await folder.awaitable_attrs.owner
 
     def json(self) -> FileInfo:
         return FileInfo(

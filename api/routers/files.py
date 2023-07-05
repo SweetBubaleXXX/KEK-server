@@ -44,6 +44,6 @@ async def delete_file(
     file_record: models.FileRecord = Depends(get_file_record_required),
     db: AsyncSession = Depends(get_db),
 ):
-    storage_client = StorageClient(db, file_record.owner, file_record.storage)
+    storage_client = StorageClient(db, await file_record.owner, file_record.storage)
     await storage_client.delete_file(file_record)
-    await db.commit()
+    await db.flush()

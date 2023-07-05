@@ -42,6 +42,7 @@ class TestFiles(TestWithRegisteredKey, TestWithStreamIteratorMixin):
             self.session, folder_record, "filename", self.storage_record, 100
         )
         await crud.update_record(self.session, file_record)
+        await self.session.commit()
         response = self.authorized_request(
             "get", "/files/download", headers={"path": "/folder/filename"}
         )

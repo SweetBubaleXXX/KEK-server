@@ -120,7 +120,7 @@ class TestStorageClient(TestWithRegisteredKey, TestWithStreamIteratorMixin):
         await storage_client.delete_file(file_record)
         await crud.update_record(self.session, folder_record)
 
-        self.assertListEqual(folder_record.files, [])
+        self.assertListEqual(await folder_record.awaitable_attrs.files, [])
         request_mock.assert_called_once_with(
             f"/file/{file_record.id}",
             headers=StorageRequestHeaders(

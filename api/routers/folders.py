@@ -50,7 +50,9 @@ async def rename_folder(
     folder_record = await crud.find_folder(db, owner=key_record, full_path=request.path)
     if folder_record is None:
         raise client.NotExists(status.HTTP_404_NOT_FOUND, detail="Folder doesn't exist")
-    if await crud.item_in_folder(db, request.new_name, folder_record.parent_folder):
+    if await crud.item_in_folder(
+        db, request.new_name, await folder_record.awaitable_attrs.parent_folder
+    ):
         raise client.AlreadyExists(detail="Folder/file with this name already exists")
     await crud.rename_folder(db, folder_record, request.new_name)
 
@@ -76,11 +78,11 @@ async def move_folder(
 async def list_folder(
     folder_record: models.FolderRecord = Depends(get_folder_record_required),
 ):
-    return folder_record.json()
+    return await folder_record.json()
 
 
 @router.get("/size")
-async def folder_size(
+def folder_size(
     folder_record: models.FolderRecord = Depends(get_folder_record_required),
 ):
     return folder_record.size

@@ -8,26 +8,17 @@ from ..utils.path_utils import split_head_and_tail, split_into_components
 from . import models
 
 
-def __get_child_folder(
-    parent_folder: models.FolderRecord, child_name: str
-) -> models.FolderRecord | None:
-    return next(
-        filter(lambda child: child.name == child_name, parent_folder.child_folders),
-        None,
-    )
-
-
-def __update_child_full_paths(folder: models.FolderRecord):
-    for file in folder.files:
+async def __update_child_full_paths(folder: models.FolderRecord):
+    for file in await folder.awaitable_attrs.files:
         file.full_path = posixpath.join(folder.full_path, file.filename)
-    for child_folder in folder.child_folders:
+    for child_folder in await folder.awaitable_attrs.child_folders:
         child_folder.full_path = posixpath.join(folder.full_path, child_folder.name)
-        __update_child_full_paths(child_folder)
+        await __update_child_full_paths(child_folder)
 
 
 async def update_record(db: AsyncSession, record: models.Record) -> models.Record:
     db.add(record)
-    await db.commit()
+    await db.flush()
     await db.refresh(record)
     return record
 
@@ -75,7 +66,7 @@ async def create_child_folder(
     db: AsyncSession, parent_folder: models.FolderRecord, name: str
 ) -> models.FolderRecord:
     child_folder = models.FolderRecord(
-        owner=parent_folder.owner,
+        owner=await parent_folder.awaitable_attrs.owner,
         parent_folder=parent_folder,
         name=name,
         full_path=posixpath.join(parent_folder.full_path, name),
@@ -89,12 +80,18 @@ async def create_folders_recursively(
     current_folder = await return_or_create_root_folder(db, key_record)
     path_components = split_into_components(folder_path)
     for folder_name in path_components:
-        existing_child = __get_child_folder(current_folder, folder_name)
+        existing_child = next(
+            filter(
+                lambda current_folder: current_folder.name == folder_name,
+                await current_folder.awaitable_attrs.child_folders,
+            ),
+            None,
+        )
         if existing_child:
             current_folder = existing_child
             continue
         current_folder = await create_child_folder(db, current_folder, folder_name)
-    return current_folder
+    return await update_record(db, current_folder)
 
 
 async def rename_folder(
@@ -103,7 +100,7 @@ async def rename_folder(
     folder.name = new_name
     parent_path, _ = split_head_and_tail(folder.full_path)
     folder.full_path = posixpath.join(parent_path, new_name)
-    __update_child_full_paths(folder)
+    await __update_child_full_paths(folder)
     return await update_record(db, folder)
 
 
@@ -114,7 +111,7 @@ async def move_folder(
 ) -> models.FolderRecord:
     folder.parent_folder = destination_folder
     folder.full_path = posixpath.join(destination_folder.full_path, folder.name)
-    __update_child_full_paths(folder)
+    await __update_child_full_paths(folder)
     return await update_record(db, folder)
 
 
@@ -136,7 +133,7 @@ async def find_file(
             select(models.FileRecord)
             .filter_by(**filters)
             .join(models.FileRecord.folder)
-            .where(models.FileRecord.folder.owner == owner)
+            .where(models.FolderRecord.owner == owner)
         )
     ).first()
 
@@ -158,7 +155,7 @@ async def item_in_folder(
 ) -> bool:
     existing_folder_found = await folder_exists(db, parent_folder=folder, name=name)
     existing_file_found = await file_exists(
-        db, owner=folder.owner, folder=folder, filename=name
+        db, owner=await folder.awaitable_attrs.owner, folder=folder, filename=name
     )
     return existing_file_found or existing_folder_found
 

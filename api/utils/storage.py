@@ -140,7 +140,7 @@ class StorageClient:
             async with session.get(
                 f"/file/{file_record.id}",
                 headers=storage_api.StorageRequestHeaders(
-                    authorization=file_record.storage.token
+                    authorization=(await file_record.awaitable_attrs.storage).token
                 ).dict(by_alias=True),
             ) as res:
                 BaseHandler.validate_response(res)
@@ -149,13 +149,15 @@ class StorageClient:
 
     @staticmethod
     async def delete_folder(db: AsyncSession, folder_record: models.FolderRecord):
-        for child_folder in folder_record.child_folders:
+        for child_folder in await folder_record.awaitable_attrs.child_folders:
             await StorageClient.delete_folder(db, child_folder)
-        for file in folder_record.files:
-            storage_client = StorageClient(db, folder_record.owner, file.storage)
+        for file in await folder_record.awaitable_attrs.files:
+            storage_client = StorageClient(
+                db, await folder_record.awaitable_attrs.owner, file.storage
+            )
             await storage_client.delete_file(file)
         await db.delete(folder_record)
-        await db.commit()
+        await db.flush()
 
     async def upload_file(
         self, full_path: str, file_size: int, stream: AsyncIterator[bytes]

@@ -1,9 +1,9 @@
 from base64 import b64encode
 
-from sqlalchemy import select
 from fastapi import status
 from httpx import Response
 from KEK.hybrid import PrivateKEK
+from sqlalchemy import select
 
 from api.db import models
 from tests.base_tests import TestWithClientMixin, TestWithDatabase
@@ -82,7 +82,7 @@ class TestRegistration(TestWithDatabase, TestWithClientMixin):
                 )
             )
         ).first()
-        self.assertEqual(root_folder.owner.id, key.key_id.hex())
+        self.assertEqual((await root_folder.awaitable_attrs.owner).id, key.key_id.hex())
 
     def __public_key_info(self, key: PrivateKEK) -> dict[str, str]:
         return {

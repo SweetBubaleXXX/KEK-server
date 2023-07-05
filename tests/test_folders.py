@@ -53,7 +53,9 @@ class TestFoldres(TestWithRegisteredKey):
                 )
             )
         ).first()
-        self.assertEqual(nested_folder.parent_folder.name, "parent")
+        self.assertEqual(
+            (await nested_folder.awaitable_attrs.parent_folder).name, "parent"
+        )
 
     async def test_rename_folder(self):
         response = self.authorized_request(
@@ -78,7 +80,12 @@ class TestFoldres(TestWithRegisteredKey):
             )
         ).first()
         self.assertEqual(
-            renamed_child.parent_folder.parent_folder.name, "renamed_grandparent"
+            (
+                await (
+                    await renamed_child.awaitable_attrs.parent_folder
+                ).awaitable_attrs.parent_folder
+            ).name,
+            "renamed_grandparent",
         )
 
     def test_rename_folder_already_exists(self):
@@ -150,7 +157,7 @@ class TestFoldres(TestWithRegisteredKey):
                 )
             )
         ).first()
-        old_parent_has_childs = bool(old_parent.child_folders)
+        old_parent_has_childs = bool(await old_parent.awaitable_attrs.child_folders)
         self.assertFalse(old_parent_has_childs)
 
     def test_move_folder_invalid_destination(self):

@@ -1,10 +1,10 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from api import config
 from api.app import app
 from api.db import engine as db
-from api.db.models import Base
 from api.db.dependency import create_get_db_dependency
+from api.db.models import Base
 from api.dependencies import get_db
 
 test_settings = config.Settings(_env_file=".config.test")
@@ -20,7 +20,7 @@ async def setup_database() -> AsyncSession:
     async with db.engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     app.dependency_overrides[get_db] = create_get_db_dependency(
-        async_sessionmaker(db.engine)
+        async_sessionmaker(db.engine, expire_on_commit=False)
     )
     session = AsyncSession(db.engine)
     return session

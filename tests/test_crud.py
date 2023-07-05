@@ -1,4 +1,4 @@
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 
 from api.db import crud, models
 from tests.base_tests import TestWithKeyRecord
@@ -16,6 +16,7 @@ class TestCrud(TestWithKeyRecord):
     async def test_add_key(self):
         key_id = "key_id"
         await crud.add_key(self.session, key_id, "public_key")
+        await self.session.commit()
         key_record = (
             await self.session.scalars(
                 select(models.KeyRecord).filter(models.KeyRecord.id == key_id)
@@ -43,18 +44,20 @@ class TestCrud(TestWithKeyRecord):
 
     async def test_find_folder(self):
         folder_record = models.FolderRecord(
-            owner=self.key_record, name="folder", full_path="folder"
+            owner_id=self.key_record.id, name="folder", full_path="folder"
         )
         self.session.add(folder_record)
         await self.session.commit()
         await self.session.refresh(folder_record)
         found_folder = await crud.find_folder(
-            self.session, owner_id=self.key_record.id, name="folder"
+            self.session, owner=self.key_record, name="folder"
         )
-        self.assertEqual(found_folder.owner, self.key_record)
+        self.assertEqual(await found_folder.awaitable_attrs.owner, self.key_record)
 
     async def test_create_root_folder(self):
         await crud.return_or_create_root_folder(self.session, self.key_record)
+        await self.session.commit()
+        await self.session.refresh(self.key_record)
         folder_record = (
             await self.session.scalars(
                 select(models.FolderRecord).filter(
@@ -63,7 +66,7 @@ class TestCrud(TestWithKeyRecord):
                 )
             )
         ).first()
-        self.assertEqual(folder_record.owner, self.key_record)
+        self.assertEqual(await folder_record.awaitable_attrs.owner, self.key_record)
 
     async def test_create_root_folder_twice(self):
         await crud.return_or_create_root_folder(self.session, self.key_record)
@@ -97,10 +100,14 @@ class TestCrud(TestWithKeyRecord):
         nested_folder = await crud.create_folders_recursively(
             self.session, self.key_record, "/great_grandparent/grandparent/parent/child"
         )
-        root_folder = (
-            nested_folder.parent_folder.parent_folder.parent_folder.parent_folder
-        )
-        self.assertEqual(root_folder.owner, self.key_record)
+        root_folder = await (
+            await (
+                await (
+                    await nested_folder.awaitable_attrs.parent_folder
+                ).awaitable_attrs.parent_folder
+            ).awaitable_attrs.parent_folder
+        ).awaitable_attrs.parent_folder
+        self.assertEqual(await root_folder.awaitable_attrs.owner, self.key_record)
 
     async def test_rename_folder(self):
         grandparent = models.FolderRecord(
@@ -125,8 +132,10 @@ class TestCrud(TestWithKeyRecord):
             self.session, grandparent, "renamed"
         )
         child_full_path = (
-            updated_grandparent.child_folders[0].child_folders[0].full_path
-        )
+            await (await updated_grandparent.awaitable_attrs.child_folders)[
+                0
+            ].awaitable_attrs.child_folders
+        )[0].full_path
         self.assertEqual(child_full_path, "renamed/parent/child")
 
     async def test_move_folder(self):
@@ -149,7 +158,9 @@ class TestCrud(TestWithKeyRecord):
         updated_folder_record = await crud.move_folder(
             self.session, folder_record, destination_folder
         )
-        updated_child_folder = updated_folder_record.child_folders[0]
+        updated_child_folder = (
+            await updated_folder_record.awaitable_attrs.child_folders
+        )[0]
         self.assertEqual(updated_child_folder.full_path, "destination/folder/child")
 
     async def test_list_folder(self):
@@ -167,7 +178,7 @@ class TestCrud(TestWithKeyRecord):
         self.session.add(parent_folder)
         await self.session.commit()
         await self.session.refresh(parent_folder)
-        folder_content = parent_folder.json()
+        folder_content = await parent_folder.json()
         self.assertListEqual(folder_content.folders, child_names)
 
     async def test_folder_size(self):
