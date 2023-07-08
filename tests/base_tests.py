@@ -5,83 +5,55 @@ from typing import AsyncGenerator, Literal, Type
 from fastapi import status
 from fastapi.testclient import TestClient
 from httpx import Response
-from KEK.hybrid import PrivateKEK
 
 from api.app import app
 from api.db import models
-from tests.setup_test_env import setup_config, setup_database, teardown_database
+from tests.setup_test_env import (
+    setup_config,
+    setup_database,
+    teardown_database,
+    setup_data,
+    KEY,
+    KEY_ID,
+)
 
 RequestMethod = Literal["get", "post", "delete"]
 
 
 class TestWithDatabase(unittest.IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
-        self.settings = setup_config()
-
     async def asyncSetUp(self):
+        self.settings = setup_config()
         self.session = await setup_database()
+        await setup_data(self.session, self.settings)
 
     async def asyncTearDown(self):
         await teardown_database(self.session)
 
-
-class TestWithKeyRecord(TestWithDatabase):
-    key = PrivateKEK.generate()
-
-    async def asyncSetUp(self):
-        await super().asyncSetUp()
-        self.key_record = await self.__add_key_to_db()
-
-    async def __add_key_to_db(self) -> models.KeyRecord:
-        key_record = models.KeyRecord(
-            id=self.key.key_id.hex(),
-            public_key=self.key.public_key.serialize().decode("utf-8"),
-        )
-        self.session.add(key_record)
-        await self.session.commit()
-        await self.session.refresh(key_record)
+    @property
+    async def key_record(self) -> models.KeyRecord:
+        key_record = await self.session.get(models.KeyRecord, KEY_ID)
+        assert key_record
         return key_record
 
 
-class TestWithClientMixin:
-    client = TestClient(app)
-
-
-class TestWithStreamIteratorMixin:
-    stream_content = "content"
-
-    async def stream_generator(self, *args, **kwargs) -> AsyncGenerator:
-        for chunk in self.stream_content:
-            yield chunk
-
-
-class TestWithRegisteredKey(TestWithKeyRecord, TestWithClientMixin):
-    async def asyncSetUp(self):
-        await super().asyncSetUp()
-        root_folder = models.FolderRecord(
-            owner=self.key_record, name=models.ROOT_PATH, full_path=models.ROOT_PATH
-        )
-        self.storage_record = models.StorageRecord(
-            id="storage_id", url="http://storage", token="token"
-        )
-        self.session.add(root_folder)
-        self.session.add(self.storage_record)
-        await self.session.commit()
-        await self.session.refresh(self.key_record)
+class TestWithClient(TestWithDatabase):
+    def setUp(self):
+        super().setUp()
+        self.client = TestClient(app)
 
     def authorized_request(
         self, method: RequestMethod, *args, headers: dict | None = None, **kwargs
-    ):
+    ) -> Response:
         if headers is None:
             headers = {}
-        headers = headers | {"key-id": self.key_record.id}
-        response = self.__request(method, *args, headers=headers, **kwargs)
-        token = response.json().get("token")
-        signed_token = b64encode(self.key.sign(token.encode("utf-8")))
+        headers = headers | {"key-id": KEY_ID}
+        response = self.request(method, *args, headers=headers, **kwargs)
+        token = response.json()["token"]
+        signed_token = b64encode(KEY.sign(token.encode("utf-8")))
         headers = headers | {"Signed-Token": signed_token}
-        return self.__request(method, *args, headers=headers, **kwargs)
+        return self.request(method, *args, headers=headers, **kwargs)
 
-    def __request(self, method: RequestMethod, *args, **kwargs) -> Response:
+    def request(self, method: RequestMethod, *args, **kwargs) -> Response:
         match method.casefold():
             case "get":
                 return self.client.get(*args, **kwargs)
@@ -93,28 +65,41 @@ class TestWithRegisteredKey(TestWithKeyRecord, TestWithClientMixin):
                 raise ValueError("Method not recognized")
 
 
-def add_test_authentication(url):
-    def decorator(cls: Type[TestWithRegisteredKey]):
-        def test_unauthorized(self: TestWithRegisteredKey):
-            response = self.client.post(url, headers={"Key-Id": self.key_record.id})
-            self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+class TestWithStreamIteratorMixin:
+    stream_content = "Content"
 
-        def test_registration_required_false(self: TestWithRegisteredKey):
-            response = self.client.post(url, headers={"Key-Id": self.key_record.id})
-            self.assertFalse(response.json().get("registration_required"))
+    async def stream_generator(self, *args, **kwargs) -> AsyncGenerator:
+        for chunk in self.stream_content:
+            yield chunk
 
-        def test_registration_required_true(self: TestWithRegisteredKey):
-            response = self.client.post(url, headers={"Key-Id": "unknown_id"})
-            self.assertTrue(response.json().get("registration_required"))
 
-        def test_invalid_token(self: TestWithRegisteredKey):
-            response = self.client.post(url, headers={"Key-Id": self.key_record.id})
-            self.assertIsNotNone(response.json().get("token"))
-            response = self.client.post(
-                url,
-                headers={"Key-Id": self.key_record.id, "Signed-Token": "invalid_token"},
-            )
-            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+def test_authentication(*urls: tuple[RequestMethod, str]):
+    def decorator(cls: Type[TestWithClient]):
+        def test_unauthorized(self: TestWithClient):
+            for method, path in urls:
+                response = self.request(method, path, headers={"Key-Id": KEY_ID})
+                self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        def test_registration_required_false(self: TestWithClient):
+            for method, path in urls:
+                response = self.request(method, path, headers={"Key-Id": KEY_ID})
+                self.assertFalse(response.json().get("registration_required"))
+
+        def test_registration_required_true(self: TestWithClient):
+            for method, path in urls:
+                response = self.request(method, path, headers={"Key-Id": "unknown_id"})
+                self.assertTrue(response.json().get("registration_required"))
+
+        def test_invalid_token(self: TestWithClient):
+            for method, path in urls:
+                response = self.request(method, path, headers={"Key-Id": KEY_ID})
+                self.assertIsNotNone(response.json().get("token"))
+                response = self.request(
+                    method,
+                    path,
+                    headers={"Key-Id": KEY_ID, "Signed-Token": "invalid_token"},
+                )
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         setattr(cls, "test_unauthorized", test_unauthorized)
         setattr(

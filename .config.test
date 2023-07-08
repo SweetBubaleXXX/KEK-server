@@ -1,3 +1,3 @@
 DATABASE_URL="sqlite+aiosqlite:///./tests/db.sqlite3?check_same_thread=False"
-USER_IS_ACTIVATED_DEFAULT=false
+USER_IS_ACTIVATED_DEFAULT=true
 USER_STORAGE_SIZE_LIMIT=1024

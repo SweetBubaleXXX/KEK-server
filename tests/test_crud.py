@@ -1,13 +1,14 @@
 from sqlalchemy import func, select
 
 from api.db import crud, models
-from tests.base_tests import TestWithKeyRecord
+from tests.base_tests import TestWithDatabase
+from tests.setup_test_env import KEY, KEY_ID
 
 
-class TestCrud(TestWithKeyRecord):
+class TestCrud(TestWithDatabase):
     async def test_get_key(self):
-        found_key = await crud.get_key_by_id(self.session, self.key_record.id)
-        self.assertEqual(found_key.public_key, self.key_record.public_key)
+        found_key = await crud.get_key_by_id(self.session, KEY_ID)
+        self.assertEqual(found_key.public_key, KEY.public_key.serialize().decode())
 
     async def test_get_key_not_found(self):
         found_key = await crud.get_key_by_id(self.session, "unknown_id")
@@ -27,50 +28,44 @@ class TestCrud(TestWithKeyRecord):
         )
 
     async def test_find_file(self):
-        folder_record = models.FolderRecord(
-            owner=self.key_record, name="folder", full_path="folder"
-        )
-        storage_record = models.StorageRecord(id="id", url="url", token="token")
-        file_record = await crud.create_file_record(
-            self.session, folder_record, "filename", storage_record, 0
-        )
-        self.session.add(file_record)
-        await self.session.commit()
-        await self.session.refresh(file_record)
         found_file = await crud.find_file(
-            self.session, self.key_record, full_path="folder/filename"
+            self.session, await self.key_record, full_path="/a1/f1"
         )
-        self.assertEqual(found_file.id, file_record.id)
+        self.assertIsNotNone(found_file)
+        self.assertEqual(found_file.filename, "f1")
+
+    async def test_file_not_found(self):
+        file_record = await crud.find_file(
+            self.session, await self.key_record, full_path="non_existent_path"
+        )
+        self.assertIsNone(file_record)
 
     async def test_find_folder(self):
-        folder_record = models.FolderRecord(
-            owner_id=self.key_record.id, name="folder", full_path="folder"
-        )
-        self.session.add(folder_record)
-        await self.session.commit()
-        await self.session.refresh(folder_record)
         found_folder = await crud.find_folder(
-            self.session, owner=self.key_record, name="folder"
+            self.session, owner=await self.key_record, full_path="/a2/b2"
         )
-        self.assertEqual(await found_folder.awaitable_attrs.owner, self.key_record)
+        self.assertEqual(
+            await found_folder.awaitable_attrs.owner, await self.key_record
+        )
 
     async def test_create_root_folder(self):
-        await crud.return_or_create_root_folder(self.session, self.key_record)
+        await crud.return_or_create_root_folder(self.session, await self.key_record)
         await self.session.commit()
-        await self.session.refresh(self.key_record)
         folder_record = (
             await self.session.scalars(
                 select(models.FolderRecord).filter(
-                    models.FolderRecord.owner_id == self.key_record.id,
+                    models.FolderRecord.owner_id == KEY_ID,
                     models.FolderRecord.full_path == models.ROOT_PATH,
                 )
             )
         ).first()
-        self.assertEqual(await folder_record.awaitable_attrs.owner, self.key_record)
+        self.assertEqual(
+            await folder_record.awaitable_attrs.owner, await self.key_record
+        )
 
     async def test_create_root_folder_twice(self):
-        await crud.return_or_create_root_folder(self.session, self.key_record)
-        await crud.return_or_create_root_folder(self.session, self.key_record)
+        await crud.return_or_create_root_folder(self.session, await self.key_record)
+        await crud.return_or_create_root_folder(self.session, await self.key_record)
         root_folder_count = (
             await self.session.scalar(
                 select(func.count())

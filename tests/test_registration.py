@@ -6,10 +6,10 @@ from KEK.hybrid import PrivateKEK
 from sqlalchemy import select
 
 from api.db import models
-from tests.base_tests import TestWithClientMixin, TestWithDatabase
+from tests.base_tests import TestWithClient, TestWithDatabase
 
 
-class TestRegistration(TestWithDatabase, TestWithClientMixin):
+class TestRegistration(TestWithClient):
     def test_empty_request(self):
         response = self.client.post("/register", json={})
         self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
