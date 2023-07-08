@@ -1,11 +1,11 @@
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from KEK.hybrid import PrivateKEK
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from api import config
 from api.app import app
 from api.db import engine as db
-from api.db.dependency import create_get_db_dependency
 from api.db import models
+from api.db.dependency import create_get_db_dependency
 from api.dependencies import get_db
 
 KEY = PrivateKEK.generate()

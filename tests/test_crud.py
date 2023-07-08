@@ -44,34 +44,35 @@ class TestCrud(TestWithDatabase):
         found_folder = await crud.find_folder(
             self.session, owner=await self.key_record, full_path="/a2/b2"
         )
-        self.assertEqual(
-            await found_folder.awaitable_attrs.owner, await self.key_record
-        )
+        self.assertEqual(found_folder.owner_id, KEY_ID)
 
     async def test_create_root_folder(self):
-        await crud.return_or_create_root_folder(self.session, await self.key_record)
+        key_id = "key_id"
+        key_record = await crud.add_key(self.session, key_id, "public_key")
+        await crud.return_or_create_root_folder(self.session, key_record)
         await self.session.commit()
         folder_record = (
             await self.session.scalars(
                 select(models.FolderRecord).filter(
-                    models.FolderRecord.owner_id == KEY_ID,
+                    models.FolderRecord.owner_id == key_id,
                     models.FolderRecord.full_path == models.ROOT_PATH,
                 )
             )
         ).first()
-        self.assertEqual(
-            await folder_record.awaitable_attrs.owner, await self.key_record
-        )
+        self.assertEqual((await folder_record.awaitable_attrs.owner).id, key_id)
 
     async def test_create_root_folder_twice(self):
-        await crud.return_or_create_root_folder(self.session, await self.key_record)
-        await crud.return_or_create_root_folder(self.session, await self.key_record)
+        key_id = "key_id"
+        key_record = await crud.add_key(self.session, key_id, "public_key")
+        await crud.return_or_create_root_folder(self.session, key_record)
+        await crud.return_or_create_root_folder(self.session, key_record)
+        await self.session.commit()
         root_folder_count = (
             await self.session.scalar(
                 select(func.count())
                 .select_from(models.FolderRecord)
                 .filter(
-                    models.FolderRecord.owner_id == self.key_record.id,
+                    models.FolderRecord.owner_id == key_id,
                     models.FolderRecord.full_path == models.ROOT_PATH,
                 )
             )
@@ -88,7 +89,7 @@ class TestCrud(TestWithDatabase):
         child_folder = await crud.create_child_folder(
             self.session, parent_folder, "child_folder"
         )
-        self.assertEqual(child_folder.owner_id, self.key_record.id)
+        self.assertEqual(child_folder.owner_id, KEY_ID)
         self.assertEqual(child_folder.full_path, "parent_folder/child_folder")
 
     async def test_create_folders_recursively(self):

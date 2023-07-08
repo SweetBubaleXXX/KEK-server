@@ -87,7 +87,7 @@ class TestRegistration(TestWithClient):
     def __public_key_info(self, key: PrivateKEK) -> dict[str, str]:
         return {
             "key_id": key.key_id.hex(),
-            "public_key": key.public_key.serialize().decode("utf-8"),
+            "public_key": key.public_key.serialize().decode(),
         }
 
     def __register_key(self, key: PrivateKEK) -> Response:

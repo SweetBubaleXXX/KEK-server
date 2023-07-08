@@ -9,12 +9,12 @@ from httpx import Response
 from api.app import app
 from api.db import models
 from tests.setup_test_env import (
-    setup_config,
-    setup_database,
-    teardown_database,
-    setup_data,
     KEY,
     KEY_ID,
+    setup_config,
+    setup_data,
+    setup_database,
+    teardown_database,
 )
 
 RequestMethod = Literal["get", "post", "delete"]
