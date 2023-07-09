@@ -21,7 +21,7 @@ def setup_config() -> config.Settings:
 
 
 async def setup_database() -> AsyncSession:
-    db.engine = create_async_engine(test_settings.database_url, echo=True)
+    db.engine = create_async_engine(test_settings.database_url)
     async with db.engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
     app.dependency_overrides[get_db] = create_get_db_dependency(

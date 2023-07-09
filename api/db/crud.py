@@ -48,7 +48,7 @@ async def return_or_create_root_folder(
 ) -> models.FolderRecord:
     existing_folder_record = (
         await db.scalars(
-            select(models.FolderRecord).filter(
+            select(models.FolderRecord).where(
                 models.FolderRecord.owner == key_record,
                 models.FolderRecord.full_path == models.ROOT_PATH,
             )
@@ -144,7 +144,7 @@ async def file_exists(db: AsyncSession, owner: models.KeyRecord, **filters) -> b
             await db.scalars(
                 select(models.FileRecord)
                 .filter_by(**filters)
-                .filter(models.FileRecord.owner == owner)
+                .where(models.FileRecord.owner == owner)
             )
         ).first()
     )
@@ -178,11 +178,7 @@ async def create_file_record(
 
 
 async def get_storage(db: AsyncSession, storage_id: str) -> models.StorageRecord | None:
-    return (
-        await db.scalars(
-            select(models.StorageRecord).filter(models.StorageRecord.id == storage_id)
-        )
-    ).first()
+    return await db.get(models.StorageRecord, storage_id)
 
 
 async def calculate_used_storage(db: AsyncSession, key_record: models.KeyRecord) -> int:
@@ -190,6 +186,6 @@ async def calculate_used_storage(db: AsyncSession, key_record: models.KeyRecord)
         await db.scalar(
             select(func.sum(models.FileRecord.size))
             .join(models.FileRecord.folder)
-            .where(models.FileRecord.owner == key_record)
+            .where(models.FolderRecord.owner == key_record)
         )
     ) or 0

@@ -81,9 +81,9 @@ class FolderRecord(Base):
     @hybrid_property
     async def size(self) -> int:
         files_size = sum(file.size for file in await self.awaitable_attrs.files)
-        child_folders_size = sum(
-            folder.size for folder in await self.awaitable_attrs.child_folders
-        )
+        child_folders_size = 0
+        for child_folder in await self.awaitable_attrs.child_folders:
+            child_folders_size += await child_folder.size
         return files_size + child_folders_size
 
     async def json(self) -> FolderContent:

@@ -1,8 +1,9 @@
 from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload, joinedload
 
 from api.db import crud, models
 from tests.base_tests import TestWithDatabase
-from tests.setup_test_env import KEY, KEY_ID
+from tests.setup_test_env import KEY, KEY_ID, FILE_SIZE
 
 
 class TestCrud(TestWithDatabase):
@@ -20,9 +21,9 @@ class TestCrud(TestWithDatabase):
         await self.session.commit()
         key_record = (
             await self.session.scalars(
-                select(models.KeyRecord).filter(models.KeyRecord.id == key_id)
+                select(models.KeyRecord).where(models.KeyRecord.id == key_id)
             )
-        ).first()
+        ).one()
         self.assertEqual(
             key_record.storage_size_limit, self.settings.user_storage_size_limit
         )
@@ -53,13 +54,15 @@ class TestCrud(TestWithDatabase):
         await self.session.commit()
         folder_record = (
             await self.session.scalars(
-                select(models.FolderRecord).filter(
+                select(models.FolderRecord)
+                .options(joinedload(models.FolderRecord.owner))
+                .where(
                     models.FolderRecord.owner_id == key_id,
                     models.FolderRecord.full_path == models.ROOT_PATH,
                 )
             )
-        ).first()
-        self.assertEqual((await folder_record.awaitable_attrs.owner).id, key_id)
+        ).one()
+        self.assertEqual(folder_record.owner.id, key_id)
 
     async def test_create_root_folder_twice(self):
         key_id = "key_id"
@@ -71,7 +74,7 @@ class TestCrud(TestWithDatabase):
             await self.session.scalar(
                 select(func.count())
                 .select_from(models.FolderRecord)
-                .filter(
+                .where(
                     models.FolderRecord.owner_id == key_id,
                     models.FolderRecord.full_path == models.ROOT_PATH,
                 )
@@ -80,157 +83,129 @@ class TestCrud(TestWithDatabase):
         self.assertEqual(root_folder_count, 1)
 
     async def test_create_child_folder(self):
-        parent_folder = models.FolderRecord(
-            owner=self.key_record, name="parent_folder", full_path="parent_folder"
-        )
-        self.session.add(parent_folder)
-        await self.session.commit()
-        await self.session.refresh(parent_folder)
+        parent_folder = (
+            await self.session.scalars(
+                select(models.FolderRecord).where(
+                    models.FolderRecord.owner_id == KEY_ID,
+                    models.FolderRecord.full_path == "/a1",
+                )
+            )
+        ).one()
         child_folder = await crud.create_child_folder(
             self.session, parent_folder, "child_folder"
         )
         self.assertEqual(child_folder.owner_id, KEY_ID)
-        self.assertEqual(child_folder.full_path, "parent_folder/child_folder")
+        self.assertEqual(child_folder.full_path, "/a1/child_folder")
 
     async def test_create_folders_recursively(self):
         nested_folder = await crud.create_folders_recursively(
-            self.session, self.key_record, "/great_grandparent/grandparent/parent/child"
+            self.session, await self.key_record, "/a2/b2/c/d"
         )
-        root_folder = await (
-            await (
-                await (
-                    await nested_folder.awaitable_attrs.parent_folder
-                ).awaitable_attrs.parent_folder
-            ).awaitable_attrs.parent_folder
-        ).awaitable_attrs.parent_folder
-        self.assertEqual(await root_folder.awaitable_attrs.owner, self.key_record)
+        self.assertEqual((await nested_folder.awaitable_attrs.parent_folder).name, "c")
+        self.assertEqual(nested_folder.owner_id, KEY_ID)
 
     async def test_rename_folder(self):
-        grandparent = models.FolderRecord(
-            owner=self.key_record, name="grandparent", full_path="grandparent"
+        parent_folder = (
+            await self.session.scalars(
+                select(models.FolderRecord).where(
+                    models.FolderRecord.owner_id == KEY_ID,
+                    models.FolderRecord.full_path == "/a1",
+                )
+            )
+        ).one()
+        updated_parent = await crud.rename_folder(
+            self.session, parent_folder, "renamed"
         )
-        parent = models.FolderRecord(
-            owner=self.key_record,
-            parent_folder=grandparent,
-            name="parent",
-            full_path="grandparent/parent",
-        )
-        child = models.FolderRecord(
-            owner=self.key_record,
-            parent_folder=parent,
-            name="child",
-            full_path="grandparent/parent/child",
-        )
-        self.session.add_all((grandparent, parent, child))
         await self.session.commit()
-        await self.session.refresh(grandparent)
-        updated_grandparent = await crud.rename_folder(
-            self.session, grandparent, "renamed"
-        )
-        child_full_path = (
-            await (await updated_grandparent.awaitable_attrs.child_folders)[
-                0
-            ].awaitable_attrs.child_folders
-        )[0].full_path
-        self.assertEqual(child_full_path, "renamed/parent/child")
+        for child_folder in await updated_parent.awaitable_attrs.child_folders:
+            self.assertTrue(child_folder.full_path.startswith("/renamed"))
 
     async def test_move_folder(self):
-        folder_record = models.FolderRecord(
-            owner=self.key_record, name="folder", full_path="folder"
-        )
-        child_folder = models.FolderRecord(
-            owner=self.key_record,
-            parent_folder=folder_record,
-            name="child",
-            full_path="folder/child",
-        )
-        destination_folder = models.FolderRecord(
-            owner=self.key_record, name="destination", full_path="destination"
-        )
-        self.session.add_all((folder_record, child_folder, destination_folder))
+        folder_record = (
+            await self.session.scalars(
+                select(models.FolderRecord).where(
+                    models.FolderRecord.owner_id == KEY_ID,
+                    models.FolderRecord.full_path == "/a1",
+                )
+            )
+        ).one()
+        destination_folder = (
+            await self.session.scalars(
+                select(models.FolderRecord).where(
+                    models.FolderRecord.owner_id == KEY_ID,
+                    models.FolderRecord.full_path == "/a2",
+                )
+            )
+        ).one()
+        await crud.move_folder(self.session, folder_record, destination_folder)
         await self.session.commit()
-        await self.session.refresh(folder_record)
-        await self.session.refresh(destination_folder)
-        updated_folder_record = await crud.move_folder(
-            self.session, folder_record, destination_folder
-        )
         updated_child_folder = (
-            await updated_folder_record.awaitable_attrs.child_folders
-        )[0]
-        self.assertEqual(updated_child_folder.full_path, "destination/folder/child")
+            await self.session.scalars(
+                select(models.FolderRecord).where(
+                    models.FolderRecord.owner_id == KEY_ID,
+                    models.FolderRecord.full_path == "/a2/a1/b1",
+                )
+            )
+        ).first()
+        self.assertIsNotNone(updated_child_folder)
 
     async def test_list_folder(self):
-        parent_folder = models.FolderRecord(
-            owner=self.key_record, name="parent_folder", full_path="parent_folder"
-        )
-        child_names = [f"folder{i}" for i in range(3)]
-        for child_folder_name in child_names:
-            child_folder = models.FolderRecord(
-                owner=self.key_record,
-                name=child_folder_name,
-                full_path=f"parent_folder/{child_folder_name}",
+        folder_record = (
+            await self.session.scalars(
+                select(models.FolderRecord).where(
+                    models.FolderRecord.owner_id == KEY_ID,
+                    models.FolderRecord.full_path == "/a1",
+                )
             )
-            parent_folder.child_folders.append(child_folder)
-        self.session.add(parent_folder)
-        await self.session.commit()
-        await self.session.refresh(parent_folder)
-        folder_content = await parent_folder.json()
-        self.assertListEqual(folder_content.folders, child_names)
+        ).one()
+        folder_content = await folder_record.json()
+        self.assertListEqual(folder_content.folders, ["b1", "b2"])
+        self.assertListEqual(
+            [file.name for file in folder_content.files], ["f1", "f2", "f3", "f4"]
+        )
 
     async def test_folder_size(self):
-        parent_folder = models.FolderRecord(
-            owner=self.key_record, name="parent_folder", full_path="parent_folder"
-        )
-        expected_size = 0
-        child_names = [f"folder{i}" for i in range(3)]
-        for child_folder_name in child_names:
-            child_folder = models.FolderRecord(
-                owner=self.key_record,
-                name=child_folder_name,
-                full_path=f"parent_folder/{child_folder_name}",
-            )
-            for i in range(10):
-                filename = f"file_{i}"
-                child_folder.files.append(
-                    models.FileRecord(
-                        filename=filename,
-                        full_path=f"{child_folder.full_path}/{filename}",
-                        size=i,
-                    )
+        folder_record = (
+            await self.session.scalars(
+                select(models.FolderRecord)
+                .options(
+                    selectinload(models.FolderRecord.child_folders),
+                    selectinload(models.FolderRecord.files),
                 )
-                expected_size += i
-            parent_folder.child_folders.append(child_folder)
-        self.session.add(parent_folder)
-        await self.session.commit()
-        await self.session.refresh(parent_folder)
-        self.assertEqual(parent_folder.size, expected_size)
+                .where(
+                    models.FolderRecord.owner_id == KEY_ID,
+                    models.FolderRecord.full_path == "/a1",
+                )
+            )
+        ).one()
+        expected_size = (
+            len(folder_record.files) * FILE_SIZE
+            + len(folder_record.child_folders) * FILE_SIZE * 3
+        )
+        self.assertEqual(await folder_record.size, expected_size)
 
     async def test_create_file_record(self):
-        folder_record = models.FolderRecord(
-            owner=self.key_record, name="folder", full_path="folder"
-        )
-        storage_record = models.StorageRecord(id="id", url="url", token="token")
-        file_record = await crud.create_file_record(
-            self.session, folder_record, "filename", storage_record, 0
-        )
-        self.assertEqual(file_record.full_path, "folder/filename")
-
-    async def test_calculate_used_storage(self):
-        folder_record = models.FolderRecord(owner=self.key_record)
-        size_range = range(1, 10)
-        for size in size_range:
-            self.session.add(
-                models.FileRecord(
-                    folder=folder_record,
-                    filename=str(size),
-                    full_path=f"/{size}",
-                    size=size,
+        folder_record = (
+            await self.session.scalars(
+                select(models.FolderRecord).where(
+                    models.FolderRecord.owner_id == KEY_ID,
+                    models.FolderRecord.full_path == "/a1/b1",
                 )
             )
-        await self.session.commit()
-        await self.session.refresh(folder_record)
-        calculated_size = await crud.calculate_used_storage(
-            self.session, self.key_record
+        ).one()
+        storage_record = (
+            await self.session.scalars(select(models.StorageRecord))
+        ).one()
+        file_record = await crud.create_file_record(
+            self.session, folder_record, "filename", storage_record, 5
         )
-        expected_size = sum(size_range)
+        self.session.commit()
+        self.assertEqual(file_record.full_path, "/a1/b1/filename")
+        self.assertEqual(file_record.storage_id, storage_record.id)
+
+    async def test_calculate_used_storage(self):
+        calculated_size = await crud.calculate_used_storage(
+            self.session, await self.key_record
+        )
+        expected_size = 3 * (4 + 3 * 2) * FILE_SIZE
         self.assertEqual(calculated_size, expected_size)
