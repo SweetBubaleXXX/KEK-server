@@ -6,7 +6,7 @@ from KEK.hybrid import PrivateKEK
 from sqlalchemy import select
 
 from api.db import models
-from tests.base_tests import TestWithClient, TestWithDatabase
+from tests.base_tests import TestWithClient
 
 
 class TestRegistration(TestWithClient):

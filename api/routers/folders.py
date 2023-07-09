@@ -17,6 +17,29 @@ from ..utils.storage import StorageClient
 router = APIRouter(tags=["folders"], dependencies=[Depends(verify_token)])
 
 
+@router.get("/list")
+async def list_folder(
+    folder_record: models.FolderRecord = Depends(get_folder_record_required),
+):
+    return await folder_record.json()
+
+
+@router.get("/size")
+def folder_size(
+    folder_record: models.FolderRecord = Depends(get_folder_record_required),
+):
+    return folder_record.size
+
+
+@router.delete("/rmdir")
+async def delete_folder(
+    folder_record: models.FolderRecord = Depends(get_folder_record_required),
+    db: AsyncSession = Depends(get_db),
+):
+    await StorageClient.delete_folder(db, folder_record)
+    await db.commit()
+
+
 @router.post("/mkdir")
 async def create_folder(
     request: CreateFolderRequest,
@@ -72,25 +95,3 @@ async def move_folder(
     if await crud.item_in_folder(db, folder_record.name, destination_folder_record):
         raise client.AlreadyExists(detail="Folder/file with this name already exists")
     await crud.move_folder(db, folder_record, destination_folder_record)
-
-
-@router.get("/list")
-async def list_folder(
-    folder_record: models.FolderRecord = Depends(get_folder_record_required),
-):
-    return await folder_record.json()
-
-
-@router.get("/size")
-def folder_size(
-    folder_record: models.FolderRecord = Depends(get_folder_record_required),
-):
-    return folder_record.size
-
-
-@router.delete("/rmdir")
-async def delete_folder(
-    folder_record: models.FolderRecord = Depends(get_folder_record_required),
-    db: AsyncSession = Depends(get_db),
-):
-    await StorageClient.delete_folder(db, folder_record)

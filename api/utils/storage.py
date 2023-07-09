@@ -153,7 +153,9 @@ class StorageClient:
             await StorageClient.delete_folder(db, child_folder)
         for file in await folder_record.awaitable_attrs.files:
             storage_client = StorageClient(
-                db, await folder_record.awaitable_attrs.owner, file.storage
+                db,
+                await folder_record.awaitable_attrs.owner,
+                await file.awaitable_attrs.storage,
             )
             await storage_client.delete_file(file)
         await db.delete(folder_record)

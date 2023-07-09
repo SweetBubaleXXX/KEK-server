@@ -84,6 +84,13 @@ async def setup_data(session: AsyncSession, settings: config.Settings):
                     size=FILE_SIZE,
                 )
             child_folder.files.append(file_record)
+            child_folder.child_folders.append(
+                models.FolderRecord(
+                    owner=key_record,
+                    name="c1",
+                    full_path=f"{child_folder.full_path}/c1",
+                )
+            )
             folder_record.child_folders.append(child_folder)
         root_folder.child_folders.append(folder_record)
     session.add_all((key_record, root_folder, storage_record))

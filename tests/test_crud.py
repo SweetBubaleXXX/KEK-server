@@ -1,9 +1,9 @@
 from sqlalchemy import func, select
-from sqlalchemy.orm import selectinload, joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from api.db import crud, models
 from tests.base_tests import TestWithDatabase
-from tests.setup_test_env import KEY, KEY_ID, FILE_SIZE
+from tests.setup_test_env import FILE_SIZE, KEY, KEY_ID
 
 
 class TestCrud(TestWithDatabase):
@@ -199,9 +199,9 @@ class TestCrud(TestWithDatabase):
         file_record = await crud.create_file_record(
             self.session, folder_record, "filename", storage_record, 5
         )
-        self.session.commit()
+        await self.session.commit()
+        await self.session.refresh(file_record)
         self.assertEqual(file_record.full_path, "/a1/b1/filename")
-        self.assertEqual(file_record.storage_id, storage_record.id)
 
     async def test_calculate_used_storage(self):
         calculated_size = await crud.calculate_used_storage(

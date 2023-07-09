@@ -139,15 +139,7 @@ async def find_file(
 
 
 async def file_exists(db: AsyncSession, owner: models.KeyRecord, **filters) -> bool:
-    return bool(
-        (
-            await db.scalars(
-                select(models.FileRecord)
-                .filter_by(**filters)
-                .where(models.FileRecord.owner == owner)
-            )
-        ).first()
-    )
+    return bool(await find_file(db, owner, **filters))
 
 
 async def item_in_folder(

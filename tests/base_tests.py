@@ -73,7 +73,7 @@ class TestWithStreamIteratorMixin:
             yield chunk
 
 
-def test_authentication(*urls: tuple[RequestMethod, str]):
+def add_test_authentication(*urls: tuple[RequestMethod, str]):
     def decorator(cls: Type[TestWithClient]):
         def test_unauthorized(self: TestWithClient):
             for method, path in urls:
