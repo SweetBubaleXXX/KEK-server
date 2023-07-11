@@ -40,6 +40,7 @@ class KeyRecord(Base):
         "FolderRecord",
         back_populates="owner",
         cascade="all, delete",
+        passive_deletes=True,
         default_factory=list,
     )
 
@@ -48,9 +49,12 @@ class FolderRecord(Base):
     __tablename__ = "folders"
 
     id: Mapped[uuidpk] = mapped_column(init=False)
-    owner_id: Mapped[str] = mapped_column(ForeignKey("public_keys.id"), default=None)
+    owner_id: Mapped[str] = mapped_column(
+        ForeignKey("public_keys.id", ondelete="CASCADE"), default=None
+    )
     parent_id: Mapped[Optional[str]] = mapped_column(
-        ForeignKey("folders.id"), default=None
+        ForeignKey("folders.id", ondelete="CASCADE"),
+        default=None,
     )
     name: Mapped[str] = mapped_column(default=ROOT_PATH)
     full_path: Mapped[str] = mapped_column(default=ROOT_PATH)
@@ -69,12 +73,14 @@ class FolderRecord(Base):
         "FolderRecord",
         back_populates="parent_folder",
         cascade="all, delete",
+        passive_deletes=True,
         default_factory=list,
     )
     files: Mapped[list["FileRecord"]] = relationship(
         "FileRecord",
         back_populates="folder",
         cascade="all, delete",
+        passive_deletes=True,
         default_factory=list,
     )
 
@@ -102,8 +108,12 @@ class FileRecord(Base):
     full_path: Mapped[str]
     size: Mapped[int]
     id: Mapped[uuidpk] = mapped_column(init=False)
-    folder_id: Mapped[str] = mapped_column(ForeignKey("folders.id"), default=None)
-    storage_id: Mapped[str] = mapped_column(ForeignKey("storages.id"), default=None)
+    folder_id: Mapped[str] = mapped_column(
+        ForeignKey("folders.id", ondelete="CASCADE"), default=None
+    )
+    storage_id: Mapped[str] = mapped_column(
+        ForeignKey("storages.id", ondelete="CASCADE"), default=None
+    )
     last_modified: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, init=False
     )

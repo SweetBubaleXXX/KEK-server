@@ -1,4 +1,4 @@
-from typing import AsyncIterator, Type
+from typing import Any, AsyncIterator, Type, TypeVar
 
 import aiohttp
 from aiohttp.client import ClientResponse
@@ -111,6 +111,9 @@ class UploadNewFileRecordHandler(BaseUploadFileHandler):
         return file_record
 
 
+T = TypeVar("T", bound=BaseHandler)
+
+
 class StorageClient:
     def __init__(
         self,
@@ -136,7 +139,9 @@ class StorageClient:
 
     @staticmethod
     async def download_file(file_record: models.FileRecord) -> AsyncIterator[bytes]:
-        async with aiohttp.ClientSession(file_record.storage.url) as session:
+        async with aiohttp.ClientSession(
+            (await file_record.awaitable_attrs.storage).url
+        ) as session:
             async with session.get(
                 f"/file/{file_record.id}",
                 headers=storage_api.StorageRequestHeaders(
@@ -163,7 +168,7 @@ class StorageClient:
 
     async def upload_file(
         self, full_path: str, file_size: int, stream: AsyncIterator[bytes]
-    ):
+    ) -> models.FileRecord:
         file_record = await crud.find_file(
             self._session, self._client, full_path=full_path
         )
@@ -176,11 +181,13 @@ class StorageClient:
                 file_record, file_size, stream
             )
         self._session.add(self._storage)
+        await self._session.flush()
         return file_record
 
     async def delete_file(self, file_record: models.FileRecord):
         await self.__create_handler(DeleteFileHandler)(file_record)
         await self._session.delete(file_record)
+        await self._session.flush()
 
-    def __create_handler(self, handler_cls: Type[BaseHandler]):
+    def __create_handler(self, handler_cls: Type[T]) -> T:
         return handler_cls(self._session, self._client, self._storage)

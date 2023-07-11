@@ -46,7 +46,7 @@ async def setup_data(session: AsyncSession, settings: config.Settings):
     )
     storage_record = models.StorageRecord(
         id="storage_id",
-        url="storage_url",
+        url="http://storage",
         token="storage_token",
         capacity=500,
         priority=1,
