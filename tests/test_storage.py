@@ -5,7 +5,7 @@ from fastapi import status
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from api.db import crud, models
+from api.db import models
 from api.exceptions.core import StorageResponseError
 from api.schemas.storage_api import (
     StorageRequestHeaders,
@@ -155,7 +155,7 @@ class TestStorageClient(TestWithClient, TestWithStreamIteratorMixin):
                     )
                 )
             ).first()
-        self.assertIsNone(found_folder_record)
+            self.assertIsNone(found_folder_record)
         for file_path in ("f1", "f2", "f3", "b1/f1", "b2/f2"):
             found_file_record = (
                 await self.session.scalars(
