@@ -1,8 +1,9 @@
-from typing import Any, AsyncIterator, Type, TypeVar
+from typing import AsyncIterator, Type, TypeVar
 
 import aiohttp
 from aiohttp.client import ClientResponse
 from fastapi import status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import crud, models
@@ -154,15 +155,21 @@ class StorageClient:
 
     @staticmethod
     async def delete_folder(db: AsyncSession, folder_record: models.FolderRecord):
-        for child_folder in await folder_record.awaitable_attrs.child_folders:
-            await StorageClient.delete_folder(db, child_folder)
-        for file in await folder_record.awaitable_attrs.files:
+        files_to_delete = await db.stream_scalars(
+            select(models.FileRecord)
+            .join(models.FileRecord.folder)
+            .where(
+                models.FolderRecord.owner_id == folder_record.owner_id,
+                models.FileRecord.full_path.startswith(folder_record.full_path),
+            )
+        )
+        async for file_record in files_to_delete:
             storage_client = StorageClient(
                 db,
                 await folder_record.awaitable_attrs.owner,
-                await file.awaitable_attrs.storage,
+                await file_record.awaitable_attrs.storage,
             )
-            await storage_client.delete_file(file)
+            await storage_client.delete_file(file_record)
         await db.delete(folder_record)
         await db.flush()
 

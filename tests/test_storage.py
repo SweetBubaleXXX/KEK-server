@@ -139,7 +139,6 @@ class TestStorageClient(TestWithClient, TestWithStreamIteratorMixin):
             )
         ).one()
         await StorageClient.delete_folder(self.session, folder_record)
-
         found_folder_record = (
             await self.session.scalars(
                 select(models.FolderRecord).where(
@@ -147,6 +146,15 @@ class TestStorageClient(TestWithClient, TestWithStreamIteratorMixin):
                 )
             )
         ).first()
+        self.assertIsNone(found_folder_record)
+        for folder_path in ("b1", "b2", "b1/c1"):
+            found_folder_record = (
+                await self.session.scalars(
+                    select(models.FolderRecord).where(
+                        models.FolderRecord.full_path == f"/a1/{folder_path}"
+                    )
+                )
+            ).first()
         self.assertIsNone(found_folder_record)
         for file_path in ("f1", "f2", "f3", "b1/f1", "b2/f2"):
             found_file_record = (
