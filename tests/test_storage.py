@@ -34,7 +34,7 @@ class TestStorageClient(TestWithClient, TestWithStreamIteratorMixin):
     @patch("aiohttp.ClientSession.post")
     async def test_upload_existing_file(self, request_mock: AsyncMock):
         storage_response = StorageSpaceResponse(
-            used=400, capacity=self.settings.session_storage_max_size
+            used=400, capacity=self.settings.SESSION_STORAGE_MAX_SIZE
         )
         self.__set_request_mock_value(request_mock, storage_response)
         storage_record = (
@@ -69,7 +69,7 @@ class TestStorageClient(TestWithClient, TestWithStreamIteratorMixin):
     @patch("aiohttp.ClientSession.post")
     async def test_upload_new_file(self, request_mock: AsyncMock):
         storage_response = StorageSpaceResponse(
-            used=400, capacity=self.settings.session_storage_max_size
+            used=400, capacity=self.settings.SESSION_STORAGE_MAX_SIZE
         )
         self.__set_request_mock_value(request_mock, storage_response)
         storage_record = (
@@ -99,7 +99,7 @@ class TestStorageClient(TestWithClient, TestWithStreamIteratorMixin):
     @patch("aiohttp.ClientSession.delete")
     async def test_delete_file(self, request_mock: AsyncMock):
         storage_response = StorageSpaceResponse(
-            used=400, capacity=self.settings.session_storage_max_size
+            used=400, capacity=self.settings.SESSION_STORAGE_MAX_SIZE
         )
         self.__set_request_mock_value(request_mock, storage_response)
         storage_record = (

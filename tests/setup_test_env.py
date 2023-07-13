@@ -21,7 +21,7 @@ def setup_config() -> config.Settings:
 
 
 async def setup_database() -> AsyncSession:
-    db.engine = create_async_engine(test_settings.database_url)
+    db.engine = create_async_engine(test_settings.DATABASE_URL)
     async with db.engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
     app.dependency_overrides[get_db] = create_get_db_dependency(
@@ -41,8 +41,8 @@ async def setup_data(session: AsyncSession, settings: config.Settings):
     key_record = models.KeyRecord(
         id=KEY_ID,
         public_key=KEY.public_key.serialize().decode("utf-8"),
-        storage_size_limit=settings.user_storage_size_limit,
-        is_activated=settings.user_is_activated_default,
+        storage_size_limit=settings.USER_STORAGE_SIZE_LIMIT,
+        is_activated=settings.USER_IS_ACTIVATED_DEFAULT,
     )
     storage_record = models.StorageRecord(
         id="storage_id",

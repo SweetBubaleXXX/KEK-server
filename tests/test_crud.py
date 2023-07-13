@@ -25,7 +25,7 @@ class TestCrud(TestWithDatabase):
             )
         ).one()
         self.assertEqual(
-            key_record.storage_size_limit, self.settings.user_storage_size_limit
+            key_record.storage_size_limit, self.settings.USER_STORAGE_SIZE_LIMIT
         )
 
     async def test_find_file(self):

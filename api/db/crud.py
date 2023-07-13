@@ -33,8 +33,8 @@ async def add_key(
     key_record = models.KeyRecord(
         id=key_id,
         public_key=public_key,
-        storage_size_limit=storage_limit or config.settings.user_storage_size_limit,
-        is_activated=is_activated or config.settings.user_is_activated_default,
+        storage_size_limit=storage_limit or config.settings.USER_STORAGE_SIZE_LIMIT,
+        is_activated=is_activated or config.settings.USER_IS_ACTIVATED_DEFAULT,
     )
     return await update_record(db, key_record)
 

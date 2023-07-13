@@ -31,6 +31,6 @@ def create_session_dependency():
         return session_storage
 
     session_storage = SessionStorage(
-        config.settings.session_storage_max_size, config.settings.session_ttl
+        config.settings.SESSION_STORAGE_MAX_SIZE, config.settings.SESSION_TTL
     )
     return get_session

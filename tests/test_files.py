@@ -40,7 +40,7 @@ class TestFiles(TestWithClient, TestWithStreamIteratorMixin):
     @patch("aiohttp.ClientSession.post")
     async def test_upload_file(self, request_mock: AsyncMock):
         storage_response = StorageSpaceResponse(
-            used=500, capacity=self.settings.session_storage_max_size
+            used=500, capacity=self.settings.SESSION_STORAGE_MAX_SIZE
         )
         request_mock.return_value.__aenter__.return_value.status = status.HTTP_200_OK
         request_mock.return_value.__aenter__.return_value.json = AsyncMock(
