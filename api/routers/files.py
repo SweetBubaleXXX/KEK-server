@@ -18,7 +18,7 @@ from ..utils.storage import StorageClient
 router = APIRouter(tags=["files"], dependencies=[Depends(verify_token)])
 
 
-@router.get("/download", dependencies=[])
+@router.get("/download")
 async def download_file(
     file_record: models.FileRecord = Depends(get_file_record_required),
 ):

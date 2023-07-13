@@ -25,8 +25,8 @@ async def get_key_record(
     session_storage: BaseSessionStorage = Depends(get_session),
 ) -> models.KeyRecord:
     key_record = await crud.get_key_by_id(db, key_id)
-    with session_storage.lock:
-        if key_record is None:
+    if key_record is None:
+        with session_storage.lock:
             token = session_storage.get(key_id) or session_storage.add(key_id)
             raise client.RegistrationRequired(token)
     return key_record

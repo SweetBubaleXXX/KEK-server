@@ -36,11 +36,7 @@ class TestFolders(TestWithClient):
 
     def test_create_folder_already_exists(self):
         response = self.authorized_request(
-            "post", "/folders/mkdir", json={"path": "/folder"}
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        response = self.authorized_request(
-            "post", "/folders/mkdir", json={"path": "/folder"}
+            "post", "/folders/mkdir", json={"path": "/a1"}
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 

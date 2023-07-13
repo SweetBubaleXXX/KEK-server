@@ -37,7 +37,6 @@ async def delete_folder(
     db: AsyncSession = Depends(get_db),
 ):
     await StorageClient.delete_folder(db, folder_record)
-    await db.commit()
 
 
 @router.post("/mkdir")
