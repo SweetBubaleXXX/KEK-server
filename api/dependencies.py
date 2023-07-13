@@ -80,14 +80,17 @@ async def get_available_storage(
 ) -> StorageClient:
     storages = (
         await db.scalars(
-            select(models.StorageRecord).order_by(
-                models.StorageRecord.priority, models.StorageRecord.free
+            select(models.StorageRecord)
+            .where(
+                models.StorageRecord.priority > 0,
+                models.StorageRecord.free >= file_size,
             )
+            .order_by(models.StorageRecord.priority, models.StorageRecord.free)
         )
     ).all()
     for storage in storages:
-        if file_size <= storage.free:
-            return StorageClient(db, key_record, storage)
+        # TODO ping storage
+        return StorageClient(db, key_record, storage)
     raise core.NoAvailableStorage()
 
 
