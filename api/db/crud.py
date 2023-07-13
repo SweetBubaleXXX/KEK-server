@@ -23,10 +23,6 @@ async def update_record(db: AsyncSession, record: models.Record) -> models.Recor
     return record
 
 
-async def get_key_by_id(db: AsyncSession, key_id: str) -> models.KeyRecord | None:
-    return await db.get(models.KeyRecord, key_id)
-
-
 async def add_key(
     db: AsyncSession,
     key_id: str,
@@ -167,10 +163,6 @@ async def create_file_record(
         size=size,
     )
     return await update_record(db, file_record)
-
-
-async def get_storage(db: AsyncSession, storage_id: str) -> models.StorageRecord | None:
-    return await db.get(models.StorageRecord, storage_id)
 
 
 async def calculate_used_storage(db: AsyncSession, key_record: models.KeyRecord) -> int:

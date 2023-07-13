@@ -8,11 +8,11 @@ from tests.setup_test_env import FILE_SIZE, KEY, KEY_ID
 
 class TestCrud(TestWithDatabase):
     async def test_get_key(self):
-        found_key = await crud.get_key_by_id(self.session, KEY_ID)
+        found_key = await self.session.get(models.KeyRecord, KEY_ID)
         self.assertEqual(found_key.public_key, KEY.public_key.serialize().decode())
 
     async def test_get_key_not_found(self):
-        found_key = await crud.get_key_by_id(self.session, "unknown_id")
+        found_key = await self.session.get(models.KeyRecord, "unknown_id")
         self.assertIsNone(found_key)
 
     async def test_add_key(self):

@@ -24,7 +24,7 @@ async def register_key(
     except (KeyLoadingError, AssertionError) as exc:
         raise client.RegistrationFailed(detail="Could not load public key") from exc
     verify_token(signed_token, key, get_session())
-    key_record = await crud.get_key_by_id(db, request.key_id)
+    key_record = await db.get(models.KeyRecord, request.key_id)
     if not key_record:
         key_record = await crud.add_key(db, request.key_id, request.public_key)
     await crud.return_or_create_root_folder(db, key_record)
