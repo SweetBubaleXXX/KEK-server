@@ -12,7 +12,7 @@ KEY = PrivateKEK.generate()
 KEY_ID = KEY.key_id.hex()
 FILE_SIZE = 10
 
-test_settings = config.Settings(_env_file=".config.test")
+test_settings = config.Settings(_env_file=".config.test")  # type: ignore[call-arg]
 
 
 def setup_config() -> config.Settings:
