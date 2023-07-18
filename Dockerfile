@@ -6,6 +6,8 @@ WORKDIR /app
 
 COPY ./requirements.txt ./
 
+COPY ./requirements-${DB_DRIVER}.txt ./
+
 RUN pip install --no-cache-dir --upgrade -r ./requirements.txt 
 
 RUN pip install --no-cache-dir --upgrade -r ./requirements-${DB_DRIVER}.txt
