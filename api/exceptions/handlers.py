@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, Response
@@ -33,4 +35,5 @@ def no_available_storage_handler(_: Request, exc: core.NoAvailableStorage):
 
 
 def storage_response_error_handler(_: Request, exc: core.StorageResponseError):
+    logging.error(exc)
     return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
