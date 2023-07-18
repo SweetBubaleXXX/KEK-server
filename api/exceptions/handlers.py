@@ -30,3 +30,7 @@ def authentication_required_handler(_: Request, exc: client.AuthenticationExcept
 
 def no_available_storage_handler(_: Request, exc: core.NoAvailableStorage):
     return Response(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+def storage_response_error_handler(_: Request, exc: core.StorageResponseError):
+    return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

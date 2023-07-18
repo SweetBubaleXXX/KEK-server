@@ -29,6 +29,9 @@ app.add_exception_handler(
 app.add_exception_handler(
     core.NoAvailableStorage, handlers.no_available_storage_handler
 )
+app.add_exception_handler(
+    core.StorageResponseError, handlers.storage_response_error_handler
+)
 
 app.include_router(keys.router)
 app.include_router(folders.router, prefix="/folders")
