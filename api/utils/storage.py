@@ -112,7 +112,7 @@ class UploadNewFileRecordHandler(BaseUploadFileHandler):
         return file_record
 
 
-T = TypeVar("T", bound=BaseHandler)
+Handler = TypeVar("Handler", bound=BaseHandler)
 
 
 class StorageClient:
@@ -153,8 +153,8 @@ class StorageClient:
                 async for chunk in res.content.iter_any():
                     yield chunk
 
-    @staticmethod
-    async def delete_folder(db: AsyncSession, folder_record: models.FolderRecord):
+    @classmethod
+    async def delete_folder(cls, db: AsyncSession, folder_record: models.FolderRecord):
         files_to_delete = await db.stream_scalars(
             select(models.FileRecord)
             .join(models.FileRecord.folder)
@@ -164,7 +164,7 @@ class StorageClient:
             )
         )
         async for file_record in files_to_delete:
-            storage_client = StorageClient(
+            storage_client = cls(
                 db,
                 await folder_record.awaitable_attrs.owner,
                 await file_record.awaitable_attrs.storage,
@@ -196,5 +196,5 @@ class StorageClient:
         await self._session.delete(file_record)
         await self._session.flush()
 
-    def __create_handler(self, handler_cls: Type[T]) -> T:
+    def __create_handler(self, handler_cls: Type[Handler]) -> Handler:
         return handler_cls(self._session, self._client, self._storage)
