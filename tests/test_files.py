@@ -50,7 +50,7 @@ class TestFiles(TestWithClient, TestWithStreamIteratorMixin):
         response = self.authorized_request(
             "post",
             "/files/upload",
-            data=iter("data"),
+            content=iter("data"),
             headers={"path": "/a1/b1/c1/file", "file-size": str(file_size)},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)

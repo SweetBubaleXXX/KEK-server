@@ -104,7 +104,7 @@ class FileRecord(Base):
     folder_id: Mapped[str] = mapped_column(ForeignKey("folders.id"), default=None)
     storage_id: Mapped[str] = mapped_column(ForeignKey("storages.id"), default=None)
     last_modified: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, init=False
+        DateTime, insert_default=datetime.utcnow, onupdate=datetime.utcnow, init=False
     )
 
     folder: Mapped[FolderRecord] = relationship(
