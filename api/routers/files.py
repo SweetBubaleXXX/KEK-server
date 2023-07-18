@@ -9,7 +9,7 @@ from ..dependencies import (
     get_db,
     get_file_record_required,
     get_path,
-    validate_available_space,
+    validate_file_size,
     verify_token,
 )
 from ..exceptions import client
@@ -25,7 +25,7 @@ async def download_file(
     return StreamingResponse(StorageClient.download_file(file_record))
 
 
-@router.post("/upload", dependencies=[Depends(validate_available_space)])
+@router.post("/upload", dependencies=[Depends(validate_file_size)])
 async def upload_file(
     request: Request,
     path: str = Depends(get_path),

@@ -61,6 +61,7 @@ class BaseUploadFileHandler(BaseHandler):
                     authorization=self._storage.token, file_size=str(file_record.size)
                 ).dict(by_alias=True),
             ) as res:
+                self.validate_response(res)
                 await self.parse_storage_space(res)
 
 

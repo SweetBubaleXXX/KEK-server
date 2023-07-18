@@ -73,8 +73,27 @@ def get_file_record_required(
     return file_record
 
 
-async def get_available_storage(
+async def validate_file_size(
+    existing_file_record: models.FileRecord | None = Depends(get_file_record),
     file_size: int = Header(),
+    key_record: models.KeyRecord = Depends(get_key_record),
+    db: AsyncSession = Depends(get_db),
+) -> int:
+    if existing_file_record:
+        existing_file_size = existing_file_record.size
+    else:
+        existing_file_size = 0
+    file_size_diff = file_size - existing_file_size
+    available_space = key_record.storage_size_limit - await crud.calculate_used_storage(
+        db, key_record
+    )
+    if file_size_diff > available_space:
+        raise client.NotEnoughSpace()
+    return file_size_diff
+
+
+async def get_available_storage(
+    file_size_diff: int = Depends(validate_file_size),
     key_record: models.KeyRecord = Depends(get_key_record),
     db: AsyncSession = Depends(get_db),
 ) -> StorageClient:
@@ -83,7 +102,7 @@ async def get_available_storage(
             select(models.StorageRecord)
             .where(
                 models.StorageRecord.priority > 0,
-                models.StorageRecord.free >= file_size,
+                models.StorageRecord.free >= file_size_diff,
             )
             .order_by(models.StorageRecord.priority, models.StorageRecord.free)
         )
@@ -92,18 +111,6 @@ async def get_available_storage(
         # TODO ping storage
         return StorageClient(db, key_record, storage)
     raise core.NoAvailableStorage()
-
-
-async def validate_available_space(
-    file_size: int = Header(),
-    key_record: models.KeyRecord = Depends(get_key_record),
-    db: AsyncSession = Depends(get_db),
-):
-    available_space = key_record.storage_size_limit - await crud.calculate_used_storage(
-        db, key_record
-    )
-    if file_size > available_space:
-        raise client.NotEnoughSpace()
 
 
 def verify_token(
