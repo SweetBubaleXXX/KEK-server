@@ -1,12 +1,16 @@
 FROM python:3.11-alpine
 
+ARG DB_DRIVER=aiosqlite
+
 WORKDIR /app
 
-COPY ./requirements.txt /app/
+COPY ./requirements.txt ./
 
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r ./requirements.txt 
 
-COPY ./api /app/api
+RUN pip install --no-cache-dir --upgrade -r ./requirements-${DB_DRIVER}.txt
+
+COPY ./api ./api
 
 EXPOSE 80
 
