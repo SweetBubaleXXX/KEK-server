@@ -45,15 +45,17 @@ async def create_folder(
     key_record: models.KeyRecord = Depends(get_key_record),
     db: AsyncSession = Depends(get_db),
 ):
+    folder_already_exists = await crud.folder_exists(
+        db, owner=key_record, full_path=request.path
+    )
+    file_already_exists = await crud.file_exists(
+        db, owner=key_record, full_path=request.path
+    )
+    if folder_already_exists or file_already_exists:
+        raise client.AlreadyExists(detail="Folder/file with this name already exists")
     if request.recursive:
         await crud.create_folders_recursively(db, key_record, request.path)
     else:
-        if await crud.folder_exists(
-            db, owner=key_record, full_path=request.path
-        ) or await crud.file_exists(db, owner=key_record, full_path=request.path):
-            raise client.AlreadyExists(
-                detail="Folder/file with this name already exists"
-            )
         parent_path, folder_name = split_head_and_tail(request.path)
         parent_folder = await crud.find_folder(
             db, owner=key_record, full_path=parent_path
