@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, status
 from KEK.exceptions import KeyLoadingError
 from KEK.hybrid import PublicKEK
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +12,7 @@ from ..schemas.base import StorageInfoResponse
 router = APIRouter(tags=["keys"])
 
 
-@router.post("/register")
+@router.post("/register", status_code=status.HTTP_204_NO_CONTENT)
 async def register_key(
     request: PublicKeyInfo,
     signed_token: str | None = Header(default=None),

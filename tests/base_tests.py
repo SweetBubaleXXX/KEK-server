@@ -99,7 +99,7 @@ def add_test_authentication(*urls: tuple[RequestMethod, str]):
                     path,
                     headers={"Key-Id": KEY_ID, "Signed-Token": "invalid_token"},
                 )
-                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
         setattr(cls, "test_unauthorized", test_unauthorized)
         setattr(

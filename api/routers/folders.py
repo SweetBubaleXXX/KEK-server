@@ -31,7 +31,7 @@ def folder_size(
     return folder_record.size
 
 
-@router.delete("/rmdir")
+@router.delete("/rmdir", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_folder(
     folder_record: models.FolderRecord = Depends(get_folder_record_required),
     db: AsyncSession = Depends(get_db),
@@ -39,7 +39,7 @@ async def delete_folder(
     await StorageClient.delete_folder(db, folder_record)
 
 
-@router.post("/mkdir")
+@router.post("/mkdir", status_code=status.HTTP_204_NO_CONTENT)
 async def create_folder(
     request: CreateFolderRequest,
     key_record: models.KeyRecord = Depends(get_key_record),
@@ -65,7 +65,7 @@ async def create_folder(
         await crud.create_child_folder(db, parent_folder, folder_name)
 
 
-@router.post("/rename")
+@router.post("/rename", status_code=status.HTTP_204_NO_CONTENT)
 async def rename_folder(
     request: RenameItemRequest,
     key_record: models.KeyRecord = Depends(get_key_record),
@@ -81,7 +81,7 @@ async def rename_folder(
     await crud.rename_folder(db, folder_record, request.new_name)
 
 
-@router.post("/move")
+@router.post("/move", status_code=status.HTTP_204_NO_CONTENT)
 async def move_folder(
     request: MoveItemRequest,
     key_record: models.KeyRecord = Depends(get_key_record),

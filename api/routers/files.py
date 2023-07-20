@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, status
 from fastapi.requests import Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +25,11 @@ async def download_file(
     return StreamingResponse(StorageClient.download_file(file_record))
 
 
-@router.post("/upload", dependencies=[Depends(validate_file_size)])
+@router.post(
+    "/upload",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(validate_file_size)],
+)
 async def upload_file(
     request: Request,
     path: str = Depends(get_path),
@@ -39,7 +43,7 @@ async def upload_file(
     await crud.update_record(db, file_record)
 
 
-@router.delete("/delete")
+@router.delete("/delete", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_file(
     file_record: models.FileRecord = Depends(get_file_record_required),
     db: AsyncSession = Depends(get_db),

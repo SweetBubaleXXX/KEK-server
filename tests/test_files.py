@@ -53,7 +53,7 @@ class TestFiles(TestWithClient, TestWithStreamIteratorMixin):
             content=iter("data"),
             headers={"path": "/a1/b1/c1/file", "file-size": str(file_size)},
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         created_file_record = (
             await self.session.scalars(
                 select(models.FileRecord)

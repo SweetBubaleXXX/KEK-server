@@ -51,13 +51,13 @@ class TestRegistration(TestWithClient):
             json=self.__public_key_info(key),
             headers={"Signed-Token": "invalid_token"},
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertIsNotNone(response.json().get("token"))
 
     def test_token(self):
         key = PrivateKEK.generate()
         response = self.__register_key(key)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
     async def test_key_in_db(self):
         key = PrivateKEK.generate()

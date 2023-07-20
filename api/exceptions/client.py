@@ -10,7 +10,7 @@ class AuthenticationException(HTTPException):
     def __init__(
         self,
         session: UUID,
-        status_code: int = status.HTTP_400_BAD_REQUEST,
+        status_code: int = status.HTTP_401_UNAUTHORIZED,
         detail="Error during authentication",
         headers: HEADERS = None,
     ):
@@ -33,7 +33,7 @@ class AuthenticationFailed(AuthenticationException):
     def __init__(
         self,
         session: UUID,
-        status_code: int = status.HTTP_400_BAD_REQUEST,
+        status_code: int = status.HTTP_401_UNAUTHORIZED,
         detail="Token authentication failed",
         headers: HEADERS = None,
     ):

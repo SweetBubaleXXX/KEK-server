@@ -23,7 +23,7 @@ class TestFolders(TestWithClient):
         response = self.authorized_request(
             "post", "/folders/mkdir", json={"path": "/folder"}
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         created_folder = (
             await self.session.scalars(
                 select(models.FolderRecord).where(
@@ -46,7 +46,7 @@ class TestFolders(TestWithClient):
             "/folders/mkdir",
             json={"path": "/grandparent/parent/child", "recursive": True},
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         nested_folder = (
             await self.session.scalars(
                 select(models.FolderRecord)
@@ -65,7 +65,7 @@ class TestFolders(TestWithClient):
             "/folders/rename",
             json={"path": "/a1", "new_name": "renamed"},
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         renamed_child = (
             await self.session.scalars(
                 select(models.FolderRecord)
@@ -119,7 +119,7 @@ class TestFolders(TestWithClient):
             "/folders/move",
             json={"path": "/a1/b1", "destination": "/a1/b2"},
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         old_parent = (
             await self.session.scalars(
                 select(models.FolderRecord)
@@ -155,7 +155,7 @@ class TestFolders(TestWithClient):
         response = self.authorized_request(
             "delete", "/folders/rmdir", headers={"path": "/a1/b1/c1"}
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         deleted_folder = (
             await self.session.scalars(
                 select(models.FolderRecord).where(
