@@ -5,7 +5,6 @@ from api import config
 from api.app import app
 from api.db import engine as db
 from api.db import models
-from api.db.dependency import create_get_db_dependency
 from api.dependencies import get_db
 
 KEY = PrivateKEK.generate()
@@ -24,7 +23,7 @@ async def setup_database() -> AsyncSession:
     db.engine = create_async_engine(test_settings.DATABASE_URL)
     async with db.engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
-    app.dependency_overrides[get_db] = create_get_db_dependency(
+    app.dependency_overrides[get_db] = db.create_get_db_dependency(
         async_sessionmaker(db.engine, expire_on_commit=False)
     )
     session = AsyncSession(db.engine)

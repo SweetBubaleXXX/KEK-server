@@ -8,8 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .db import crud, models
-from .db.dependency import create_get_db_dependency
-from .db.engine import async_session
+from .db.engine import async_session, create_get_db_dependency
 from .exceptions import client, core
 from .utils.path_utils import normalize
 from .utils.sessions import BaseSessionStorage, create_session_dependency
