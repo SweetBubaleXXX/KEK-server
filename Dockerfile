@@ -4,13 +4,9 @@ ARG DB_DRIVER=aiosqlite
 
 WORKDIR /app
 
-COPY ./requirements.txt ./
+COPY ./requirements.txt ./requirements-${DB_DRIVER}.txt ./
 
-COPY ./requirements-${DB_DRIVER}.txt ./
-
-RUN pip install --no-cache-dir --upgrade -r ./requirements.txt 
-
-RUN pip install --no-cache-dir --upgrade -r ./requirements-${DB_DRIVER}.txt
+RUN pip install --no-cache-dir --upgrade -r ./requirements.txt -r ./requirements-${DB_DRIVER}.txt
 
 COPY ./api ./api
 
