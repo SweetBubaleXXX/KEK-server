@@ -14,6 +14,10 @@ RUN pip install --no-cache-dir --upgrade -r ./requirements-${DB_DRIVER}.txt
 
 COPY ./api ./api
 
+COPY ./migrations ./migrations
+
+COPY ./alembic.ini ./
+
 EXPOSE 80
 
 CMD ["uvicorn", "api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "80"]
