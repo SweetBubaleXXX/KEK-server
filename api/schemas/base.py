@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, root_validator, validator
 
-from ..utils.path_utils import normalize
+from ..utils.path_utils import add_trailing_slash, normalize
 
 
 class ItemRequest(BaseModel):
@@ -26,7 +26,7 @@ class MoveItemRequest(ItemRequest):
     def validate_destination_path(cls, values):
         path = values["path"]
         destination = values["destination"]
-        if destination.startswith(path):
+        if destination == path or destination.startswith(add_trailing_slash(path)):
             raise ValueError("Destination should be a higher level directory")
         return values
 

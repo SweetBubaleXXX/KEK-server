@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import crud, models
 from ..exceptions import client, core
 from ..schemas import storage_api
-from .path_utils import split_head_and_tail
+from .path_utils import add_trailing_slash, split_head_and_tail
 
 
 class BaseHandler:
@@ -161,7 +161,9 @@ class StorageClient:
             .join(models.FileRecord.folder)
             .where(
                 models.FolderRecord.owner_id == folder_record.owner_id,
-                models.FileRecord.full_path.startswith(folder_record.full_path),
+                models.FileRecord.full_path.startswith(
+                    add_trailing_slash(folder_record.full_path)
+                ),
             )
         )
         async for file_record in files_to_delete:
